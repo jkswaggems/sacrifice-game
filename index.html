@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sacrifice</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0e0c1a; color: #f0eeff; min-height: 100vh; padding: 1rem; }
+  h1 { font-size: 26px; font-weight: 600; margin-bottom: .2rem; }
+  h2 { font-size: 18px; font-weight: 500; margin-bottom: .75rem; }
+  p { font-size: 15px; line-height: 1.6; color: #b0a8cc; }
+  .screen { display: none; max-width: 480px; margin: 0 auto; padding-top: 1.5rem; }
+  .screen.active { display: block; }
+  .card { background: #1a1630; border: 1px solid #2e2850; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+  input[type=text] { width: 100%; font-size: 15px; padding: 10px 13px; border: 1px solid #2e2850; border-radius: 9px; background: #0e0c1a; color: #f0eeff; margin: 5px 0 12px; font-family: inherit; }
+  input[type=text]:focus { outline: none; border-color: #7c6fff; }
+  button { font-size: 14px; font-weight: 500; padding: 10px 18px; border: 1px solid #2e2850; border-radius: 9px; background: transparent; color: #f0eeff; cursor: pointer; font-family: inherit; transition: all .15s; }
+  button:hover { background: #2e2850; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: #5b4fff; color: #fff; border-color: #5b4fff; }
+  .btn-primary:hover { background: #4a3fee; }
+  .btn-danger { background: #8b2a0e; color: #fde8df; border-color: #8b2a0e; }
+  .btn-danger:hover { background: #6e200a; }
+  .btn-success { background: #0d6b50; color: #d6f5eb; border-color: #0d6b50; }
+  .btn-success:hover { background: #095540; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 6px; margin-left: 6px; vertical-align: middle; letter-spacing: .3px; }
+  .b-priest { background: #0d3d2b; color: #5dca9e; }
+  .b-pope { background: #221a5c; color: #a89fff; }
+  .b-heretic { background: #3d1508; color: #f09a7a; }
+  .b-sacrifice { background: #3d0808; color: #f07a7a; }
+  .b-unknown { background: #1e1b30; color: #8880aa; }
+  .player-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1e1b30; }
+  .player-row:last-child { border-bottom: none; }
+  .player-row.eliminated { opacity: .35; }
+  .player-row.eliminated .pname { text-decoration: line-through; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .av-priest { background: #0d3d2b; color: #5dca9e; }
+  .av-pope { background: #221a5c; color: #a89fff; }
+  .av-heretic { background: #3d1508; color: #f09a7a; }
+  .av-sacrifice { background: #3d0808; color: #f07a7a; }
+  .av-unknown { background: #1e1b30; color: #8880aa; }
+  .stat-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .stat { background: #1a1630; border: 1px solid #2e2850; border-radius: 8px; padding: 5px 12px; font-size: 13px; color: #8880aa; }
+  .stat strong { color: #f0eeff; }
+  .log { max-height: 110px; overflow-y: auto; }
+  .log-entry { font-size: 13px; color: #8880aa; padding: 4px 0; border-bottom: 1px solid #1e1b30; }
+  .room-code { font-size: 38px; font-weight: 700; letter-spacing: 8px; color: #a89fff; text-align: center; padding: 1rem 0; }
+  .vote-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #1e1b30; }
+  .vote-row:last-child { border-bottom: none; }
+  .vote-btn { padding: 6px 14px; font-size: 13px; }
+  .vote-btn.yes-sel { background: #0d3d2b; color: #5dca9e; border-color: #0d6b50; }
+  .vote-btn.no-sel { background: #3d0808; color: #f07a7a; border-color: #8b2a0e; }
+  #peek-result { background: #1e1b30; border-radius: 10px; padding: 1.25rem; margin-top: 1rem; text-align: center; display: none; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #2e2850; border-top-color: #7c6fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .role-big { font-size: 56px; display: block; text-align: center; margin-bottom: .5rem; }
+  .error { color: #f07a7a; font-size: 13px; margin-top: 6px; }
+  .waiting-players { margin-top: .5rem; }
+  .waiting-pill { display: inline-block; background: #1e1b30; border: 1px solid #2e2850; border-radius: 20px; padding: 4px 12px; font-size: 13px; margin: 3px; color: #c0b8e0; }
+  .waiting-pill.me { border-color: #5b4fff; color: #a89fff; }
+  #status-msg { font-size: 13px; color: #8880aa; margin-top: .5rem; min-height: 20px; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <h1 style="text-align:center; margin-top:1rem">⛪ The Sacrifice</h1>
+  <p style="text-align:center; margin-bottom:1.5rem; font-size:13px">Social deduction · 4–8 players · Multiple devices</p>
+  <div class="card">
+    <h2>Create a game</h2>
+    <p style="margin-bottom:.75rem; font-size:13px">You'll get a room code to share with your friends.</p>
+    <label style="font-size:13px; color:#8880aa">Your name</label>
+    <input type="text" id="host-name" placeholder="Enter your name" maxlength="20" />
+    <button class="btn-primary" onclick="createRoom()">Create room →</button>
+    <div class="error" id="err-create"></div>
+  </div>
+  <div class="card">
+    <h2>Join a game</h2>
+    <label style="font-size:13px; color:#8880aa">Your name</label>
+    <input type="text" id="join-name" placeholder="Enter your name" maxlength="20" />
+    <label style="font-size:13px; color:#8880aa">Room code</label>
+    <input type="text" id="join-code" placeholder="e.g. HOLY" maxlength="6" style="text-transform:uppercase; letter-spacing:4px; font-size:18px;" />
+    <button class="btn-primary" onclick="joinRoom()">Join room →</button>
+    <div class="error" id="err-join"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="s-lobby" class="screen">
+  <h1>Waiting room</h1>
+  <p style="margin-bottom:1rem; font-size:13px">Share this code with everyone:</p>
+  <div class="card" style="text-align:center">
+    <div class="room-code" id="lobby-code">----</div>
+    <p style="font-size:13px; margin-bottom:.5rem">Show this to your friends so they can join</p>
+  </div>
+  <div class="card">
+    <h2>Players joined (<span id="lobby-count">0</span>/8)</h2>
+    <div class="waiting-players" id="lobby-players"></div>
+    <p style="font-size:13px; margin-top:.75rem; color:#8880aa">Need at least 4 players to start.</p>
+  </div>
+  <div id="host-start-area" style="display:none">
+    <button class="btn-primary" id="start-btn" onclick="startGame()" disabled>Start game</button>
+    <div id="status-msg"></div>
+  </div>
+  <div id="waiting-msg" style="display:none">
+    <p style="font-size:13px; color:#8880aa">Waiting for the host to start the game…</p>
+  </div>
+</div>
+
+<!-- ROLE REVEAL -->
+<div id="s-reveal" class="screen">
+  <h1 style="margin-bottom:.5rem">Your secret role</h1>
+  <p style="font-size:13px; margin-bottom:1rem">Keep this screen private. Don't show anyone.</p>
+  <div class="card" id="reveal-card" style="text-align:center; padding:2rem 1.25rem">
+    <button class="btn-primary" id="reveal-tap-btn" onclick="revealRole()">Tap to see your role</button>
+    <div id="reveal-content" style="display:none">
+      <span class="role-big" id="reveal-emoji"></span>
+      <p style="font-size:22px; font-weight:600; color:#f0eeff; margin-bottom:.5rem" id="reveal-role-name"></p>
+      <p style="font-size:14px; color:#b0a8cc; margin-bottom:1.25rem" id="reveal-role-desc"></p>
+      <p style="font-size:13px; color:#8880aa; margin-bottom:1rem" id="reveal-heretic-partner"></p>
+      <button class="btn-primary" onclick="goToGame()">Got it, let's play →</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem">
+    <h1>The Sacrifice</h1>
+    <div class="stat">Round <strong id="g-round">1</strong></div>
+  </div>
+  <div class="stat-bar">
+    <div class="stat">Alive: <strong id="g-alive">0</strong></div>
+    <div class="stat">Nominated: <strong id="g-nom-count">0</strong>/<strong id="g-alive2">0</strong></div>
+    <div class="stat">You: <strong id="g-myname"></strong></div>
+  </div>
+
+  <div class="card">
+    <h2>Players</h2>
+    <div id="g-players"></div>
+  </div>
+
+  <!-- Pope clairvoyance -->
+  <div class="card" id="g-pope-card" style="display:none; border-color:#2e2850">
+    <h2>✝️ Your power: Clairvoyance</h2>
+    <p style="font-size:13px; margin-bottom:.75rem">Secretly peek at one player's role. You can only do this once per game.</p>
+    <button class="btn-primary" onclick="showPeekScreen()">Use clairvoyance →</button>
+  </div>
+
+  <!-- Nomination / Voting -->
+  <div class="card" id="g-action-card">
+    <div id="g-phase-nominate">
+      <h2>Nominate someone</h2>
+      <p style="font-size:13px; margin-bottom:.75rem">Discuss with everyone, then nominate a player to be cast out as the Sacrifice.</p>
+      <div id="g-nominate-list"></div>
+      <div style="margin-top:.5rem; padding-top:.75rem; border-top:1px solid #1e1b30">
+        <button onclick="skipNomination()" style="font-size:13px">Skip — no nomination this round</button>
+      </div>
+    </div>
+    <div id="g-phase-vote" style="display:none">
+      <h2>Vote on <span id="g-nom-name" style="color:#a89fff"></span></h2>
+      <p style="font-size:13px; margin-bottom:.75rem">Should this person be cast out as the Sacrifice?</p>
+      <div id="g-vote-list"></div>
+      <div id="g-vote-waiting" style="display:none; margin-top:.75rem">
+        <span class="spinner"></span><span style="font-size:13px; color:#8880aa">Waiting for all votes…</span>
+        <div style="font-size:13px; color:#8880aa; margin-top:.4rem" id="g-vote-progress"></div>
+      </div>
+      <div id="g-vote-buttons" style="margin-top:.75rem; display:flex; gap:8px">
+        <button class="btn-success vote-btn" id="vote-yes" onclick="castVote('yes')">Yes — cast them out</button>
+        <button class="btn-danger vote-btn" id="vote-no" onclick="castVote('no')">No — spare them</button>
+      </div>
+    </div>
+    <div id="g-phase-result" style="display:none; text-align:center; padding:1rem 0">
+      <span style="font-size:36px" id="g-result-emoji"></span>
+      <p style="font-size:17px; font-weight:600; color:#f0eeff; margin:.5rem 0" id="g-result-title"></p>
+      <p style="font-size:13px; margin-bottom:1rem" id="g-result-desc"></p>
+      <button class="btn-primary" id="g-next-round-btn" onclick="nextRound()">Next round →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Game log</h2>
+    <div class="log" id="g-log"></div>
+  </div>
+</div>
+
+<!-- PEEK SCREEN -->
+<div id="s-peek" class="screen">
+  <h1 style="margin-bottom:.25rem">✝️ Clairvoyance</h1>
+  <p style="font-size:13px; margin-bottom:1rem">You are the Pope. Choose a player to secretly see their role. Keep this screen private.</p>
+  <div class="card">
+    <div id="peek-list"></div>
+    <div id="peek-result">
+      <span id="peek-emoji" style="font-size:40px; display:block; margin-bottom:.4rem"></span>
+      <p style="font-size:17px; font-weight:600; color:#f0eeff" id="peek-role-text"></p>
+      <button class="btn-primary" style="margin-top:1rem" onclick="donePeek()">Done, back to game →</button>
+    </div>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div id="s-end" class="screen">
+  <div class="card" style="text-align:center; padding:2rem 1.25rem">
+    <span class="role-big" id="end-emoji"></span>
+    <h1 id="end-title" style="margin-bottom:.5rem"></h1>
+    <p style="margin-bottom:1.5rem" id="end-desc"></p>
+    <h2 style="text-align:left; margin-bottom:.5rem">All roles revealed</h2>
+    <div id="end-roles"></div>
+    <button class="btn-primary" style="margin-top:1.5rem" onclick="playAgain()">Play again →</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBalJQequQz7a-1sJCOkux2yHLkwqdtKKA",
+  authDomain: "sacrifice-game.firebaseapp.com",
+  projectId: "sacrifice-game",
+  storageBucket: "sacrifice-game.firebasestorage.app",
+  messagingSenderId: "472891316325",
+  appId: "1:472891316325:web:23392f23e41833739c0e8c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- State ---
+let myId = Math.random().toString(36).slice(2, 10);
+let myName = '';
+let roomCode = '';
+let isHost = false;
+let myRole = '';
+let gameState = null;
+let unsubscribe = null;
+let peekUsed = false;
+let myVote = null;
+
+const roleInfo = {
+  priest:   { emoji:'🕊️', name:'Priest',   cls:'b-priest',   av:'av-priest',   desc:'Find and vote out the real Sacrifice. Trust carefully — heretics walk among you.' },
+  pope:     { emoji:'✝️', name:'Pope',     cls:'b-pope',     av:'av-pope',     desc:'You are Priest-aligned. Once per game, you can secretly peek at any player\'s role card.' },
+  heretic:  { emoji:'😈', name:'Heretic',  cls:'b-heretic',  av:'av-heretic',  desc:'You win if a heretic or an innocent priest gets voted out instead of the real Sacrifice.' },
+  sacrifice:{ emoji:'☠️', name:'Sacrifice',cls:'b-sacrifice', av:'av-sacrifice', desc:'You are the real Sacrifice — but you don\'t know it. The priests are hunting you. Blend in and survive.' }
+};
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+function genCode(){ return Math.random().toString(36).slice(2,6).toUpperCase(); }
+
+function assignRoles(players){
+  const n = players.length;
+  const shuffled = [...players].sort(()=>Math.random()-.5);
+  const roles = {};
+  roles[shuffled[0].id] = 'pope';
+  roles[shuffled[1].id] = 'sacrifice';
+  roles[shuffled[2].id] = 'heretic';
+  roles[shuffled[3].id] = 'heretic';
+  for(let i=4;i<n;i++) roles[shuffled[i].id]='priest';
+  return roles;
+}
+
+// --- Home ---
+window.createRoom = async function(){
+  const name = document.getElementById('host-name').value.trim();
+  if(!name){ document.getElementById('err-create').textContent='Please enter your name.'; return; }
+  myName = name; isHost = true;
+  roomCode = genCode();
+  const roomRef = doc(db,'rooms',roomCode);
+  await setDoc(roomRef,{
+    code: roomCode,
+    status: 'lobby',
+    host: myId,
+    players: [{ id:myId, name:myName, alive:true }],
+    roles:{}, round:1, nominationsThisRound:0,
+    nominatedId:null, votes:{}, peekUsed:false,
+    log:[], phase:'nominate', createdAt: serverTimestamp()
+  });
+  listenToRoom();
+  show('s-lobby');
+  document.getElementById('lobby-code').textContent = roomCode;
+  document.getElementById('host-start-area').style.display='block';
+};
+
+window.joinRoom = async function(){
+  const name = document.getElementById('join-name').value.trim();
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if(!name){ document.getElementById('err-join').textContent='Please enter your name.'; return; }
+  if(!code){ document.getElementById('err-join').textContent='Please enter a room code.'; return; }
+  const roomRef = doc(db,'rooms',code);
+  const snap = await getDoc(roomRef);
+  if(!snap.exists()){ document.getElementById('err-join').textContent='Room not found. Check the code.'; return; }
+  const data = snap.data();
+  if(data.status !== 'lobby'){ document.getElementById('err-join').textContent='That game has already started.'; return; }
+  if(data.players.length >= 8){ document.getElementById('err-join').textContent='Room is full (8 players max).'; return; }
+  myName = name; roomCode = code;
+  await updateDoc(roomRef,{ players: arrayUnion({ id:myId, name:myName, alive:true }) });
+  listenToRoom();
+  show('s-lobby');
+  document.getElementById('lobby-code').textContent = roomCode;
+  document.getElementById('waiting-msg').style.display='block';
+};
+
+function listenToRoom(){
+  const roomRef = doc(db,'rooms',roomCode);
+  if(unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(roomRef, snap=>{
+    if(!snap.exists()) return;
+    gameState = snap.data();
+    handleStateChange(gameState);
+  });
+}
+
+function handleStateChange(state){
+  if(state.status==='lobby') renderLobby(state);
+  else if(state.status==='playing') renderGame(state);
+  else if(state.status==='ended') renderEnd(state);
+}
+
+// --- Lobby ---
+function renderLobby(state){
+  const count = state.players.length;
+  document.getElementById('lobby-count').textContent = count;
+  const pl = document.getElementById('lobby-players');
+  pl.innerHTML='';
+  state.players.forEach(p=>{
+    const span=document.createElement('span');
+    span.className='waiting-pill'+(p.id===myId?' me':'');
+    span.textContent = p.id===myId ? p.name+' (you)' : p.name;
+    pl.appendChild(span);
+  });
+  if(isHost){
+    const btn=document.getElementById('start-btn');
+    btn.disabled = count<4;
+    document.getElementById('status-msg').textContent = count<4 ? `Need ${4-count} more player(s) to start.` : 'Ready to start!';
+  }
+}
+
+window.startGame = async function(){
+  const roomRef = doc(db,'rooms',roomCode);
+  const snap = await getDoc(roomRef);
+  const state = snap.data();
+  const roles = assignRoles(state.players);
+  await updateDoc(roomRef,{ status:'playing', roles, phase:'nominate', round:1, nominationsThisRound:0, nominatedId:null, votes:{}, peekUsed:false, log:[] });
+};
+
+// --- Role Reveal ---
+function goToReveal(state){
+  myRole = state.roles[myId];
+  const info = roleInfo[myRole];
+  document.getElementById('reveal-emoji').textContent = info.emoji;
+  document.getElementById('reveal-role-name').textContent = info.name;
+  document.getElementById('reveal-role-desc').textContent = info.desc;
+  if(myRole==='heretic'){
+    const partner = state.players.find(p=>p.id!==myId && state.roles[p.id]==='heretic');
+    if(partner) document.getElementById('reveal-heretic-partner').textContent = '🤝 Your fellow heretic: '+partner.name;
+  } else {
+    document.getElementById('reveal-heretic-partner').textContent='';
+  }
+  document.getElementById('reveal-content').style.display='none';
+  document.getElementById('reveal-tap-btn').style.display='inline-block';
+  show('s-reveal');
+}
+
+window.revealRole = function(){
+  document.getElementById('reveal-tap-btn').style.display='none';
+  document.getElementById('reveal-content').style.display='block';
+};
+
+window.goToGame = function(){ show('s-game'); renderGameFromState(gameState); };
+
+// --- Game ---
+let revealShown = false;
+function renderGame(state){
+  if(!revealShown){ revealShown=true; goToReveal(state); }
+  renderGameFromState(state);
+}
+
+function renderGameFromState(state){
+  if(!state||state.status!=='playing') return;
+  const alive = state.players.filter(p=>p.alive);
+  document.getElementById('g-round').textContent = state.round;
+  document.getElementById('g-alive').textContent = alive.length;
+  document.getElementById('g-nom-count').textContent = state.nominationsThisRound;
+  document.getElementById('g-alive2').textContent = alive.length;
+  document.getElementById('g-myname').textContent = myName;
+
+  // Players list
+  const pl=document.getElementById('g-players');
+  pl.innerHTML='';
+  state.players.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='player-row'+(p.alive?'':' eliminated');
+    const info = p.alive ? null : roleInfo[state.roles[p.id]];
+    row.innerHTML=`<div class="avatar av-unknown">${p.name[0].toUpperCase()}</div>
+      <span class="pname" style="flex:1;font-size:15px">${p.name}${p.id===myId?' <span style="font-size:11px;color:#8880aa">(you)</span>':''}</span>
+      ${!p.alive&&info ? `<span class="badge ${info.cls}">${info.emoji} ${info.name}</span>` : ''}
+      ${!p.alive ? '<span style="font-size:12px;color:#8880aa">eliminated</span>' : ''}`;
+    pl.appendChild(row);
+  });
+
+  // Pope power
+  const amPope = myRole==='pope';
+  document.getElementById('g-pope-card').style.display = (amPope && !state.peekUsed) ? 'block' : 'none';
+
+  // Log
+  const logEl=document.getElementById('g-log');
+  logEl.innerHTML='';
+  (state.log||[]).slice().reverse().forEach(msg=>{
+    const d=document.createElement('div'); d.className='log-entry'; d.textContent=msg; logEl.appendChild(d);
+  });
+
+  // Phases
+  document.getElementById('g-phase-nominate').style.display='none';
+  document.getElementById('g-phase-vote').style.display='none';
+  document.getElementById('g-phase-result').style.display='none';
+
+  if(state.phase==='nominate') renderNominate(state, alive);
+  else if(state.phase==='vote') renderVote(state, alive);
+  else if(state.phase==='result') renderResult(state);
+}
+
+function renderNominate(state, alive){
+  document.getElementById('g-phase-nominate').style.display='block';
+  const nl=document.getElementById('g-nominate-list');
+  nl.innerHTML='';
+  alive.forEach(p=>{
+    if(p.id===myId) return;
+    const btn=document.createElement('button');
+    btn.textContent='Nominate '+p.name;
+    btn.style.cssText='margin:4px 4px 0 0;font-size:13px';
+    btn.onclick=()=>nominatePlayer(p.id, p.name, state);
+    nl.appendChild(btn);
+  });
+}
+
+window.nominatePlayer = async function(pid, pname, state){
+  const roomRef=doc(db,'rooms',roomCode);
+  const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} nominated ${pname}.`];
+  await updateDoc(roomRef,{ phase:'vote', nominatedId:pid, votes:{}, nominatedName:pname, log:newLog });
+  myVote=null;
+};
+
+window.skipNomination = async function(){
+  const roomRef=doc(db,'rooms',roomCode);
+  const snap=await getDoc(roomRef);
+  const state=snap.data();
+  const alive=state.players.filter(p=>p.alive);
+  const newNom=(state.nominationsThisRound||0)+1;
+  const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} skipped nomination (${newNom}/${alive.length}).`];
+  if(newNom>=alive.length){
+    await updateDoc(roomRef,{ nominationsThisRound:newNom, log:newLog });
+    endGame('heretic','skip',state);
+  } else {
+    await updateDoc(roomRef,{ nominationsThisRound:newNom, log:newLog, nominatedId:null });
+  }
+};
+
+function renderVote(state, alive){
+  document.getElementById('g-phase-vote').style.display='block';
+  document.getElementById('g-nom-name').textContent=state.nominatedName||'';
+  const me=state.players.find(p=>p.id===myId);
+  if(!me||!me.alive){ document.getElementById('g-vote-buttons').style.display='none'; document.getElementById('g-vote-waiting').style.display='block'; return; }
+  const myVoteVal=state.votes?.[myId];
+  if(myVoteVal){
+    document.getElementById('g-vote-buttons').style.display='none';
+    document.getElementById('g-vote-waiting').style.display='block';
+  } else {
+    document.getElementById('g-vote-buttons').style.display='flex';
+    document.getElementById('g-vote-waiting').style.display='none';
+  }
+  const votedCount=Object.keys(state.votes||{}).length;
+  document.getElementById('g-vote-progress').textContent=`${votedCount} of ${alive.length} voted`;
+
+  // Check if all voted
+  if(alive.length>0 && votedCount>=alive.length && isHost){
+    tallyVotes(state,alive);
+  }
+}
+
+window.castVote = async function(val){
+  const roomRef=doc(db,'rooms',roomCode);
+  myVote=val;
+  document.getElementById('g-vote-buttons').style.display='none';
+  document.getElementById('g-vote-waiting').style.display='block';
+  await updateDoc(roomRef,{ [`votes.${myId}`]: val });
+};
+
+async function tallyVotes(state, alive){
+  const votes=state.votes||{};
+  const yes=Object.values(votes).filter(v=>v==='yes').length;
+  const no=Object.values(votes).filter(v=>v==='no').length;
+  const nominated=state.players.find(p=>p.id===state.nominatedId);
+  const roomRef=doc(db,'rooms',roomCode);
+  const newNom=(state.nominationsThisRound||0)+1;
+  let newLog=[...(state.log||[])];
+  let newPlayers=[...state.players];
+
+  if(yes>no){
+    newPlayers=newPlayers.map(p=>p.id===state.nominatedId?{...p,alive:false}:p);
+    newLog.push(`Round ${state.round}: ${nominated.name} was voted out (${yes} yes, ${no} no).`);
+    const eliminatedRole=state.roles[state.nominatedId];
+    let winner=eliminatedRole==='sacrifice'?'priest':'heretic';
+    await updateDoc(roomRef,{ players:newPlayers, log:newLog, phase:'result', voteResult:{yes,no,winner,eliminatedId:state.nominatedId,eliminatedName:nominated.name,eliminatedRole}, nominationsThisRound:newNom });
+  } else {
+    newLog.push(`Round ${state.round}: ${nominated.name} survived the vote (${yes} yes, ${no} no).`);
+    await updateDoc(roomRef,{ log:newLog, phase:'nominate', nominatedId:null, votes:{}, nominationsThisRound:newNom });
+  }
+}
+
+function renderResult(state){
+  document.getElementById('g-phase-result').style.display='block';
+  const r=state.voteResult;
+  if(!r) return;
+  if(r.winner==='priest'){
+    document.getElementById('g-result-emoji').textContent='🕊️';
+    document.getElementById('g-result-title').textContent='The Priests win!';
+    document.getElementById('g-result-desc').textContent=`${r.eliminatedName} was the real Sacrifice! Faith is restored.`;
+    document.getElementById('g-next-round-btn').style.display='none';
+    setTimeout(()=>endGameFinal(state),3000);
+  } else if(r.winner==='heretic'){
+    document.getElementById('g-result-emoji').textContent='😈';
+    document.getElementById('g-result-title').textContent='The Heretics win!';
+    document.getElementById('g-result-desc').textContent=`${r.eliminatedName} was a ${roleInfo[r.eliminatedRole].name} — not the Sacrifice!`;
+    document.getElementById('g-next-round-btn').style.display='none';
+    setTimeout(()=>endGameFinal(state),3000);
+  } else {
+    document.getElementById('g-result-emoji').textContent='⚔️';
+    document.getElementById('g-result-title').textContent='Vote failed';
+    document.getElementById('g-result-desc').textContent=`${r.eliminatedName} survived (${r.yes} yes, ${r.no} no). Continue discussing.`;
+    document.getElementById('g-next-round-btn').style.display='inline-block';
+  }
+}
+
+window.nextRound = async function(){
+  const roomRef=doc(db,'rooms',roomCode);
+  const snap=await getDoc(roomRef);
+  const state=snap.data();
+  await updateDoc(roomRef,{ round:state.round+1, nominationsThisRound:0, phase:'nominate', nominatedId:null, votes:{}, voteResult:null });
+};
+
+async function endGameFinal(state){
+  if(!isHost) return;
+  const r=state.voteResult||{};
+  const roomRef=doc(db,'rooms',roomCode);
+  await updateDoc(roomRef,{ status:'ended', finalWinner:r.winner||'heretic', finalReason:r.eliminatedName||'skip' });
+}
+
+async function endGame(winner, reason, state){
+  if(!isHost) return;
+  const roomRef=doc(db,'rooms',roomCode);
+  await updateDoc(roomRef,{ status:'ended', finalWinner:winner, finalReason:reason });
+}
+
+function renderEnd(state){
+  show('s-end');
+  const winner=state.finalWinner;
+  if(winner==='priest'){
+    document.getElementById('end-emoji').textContent='🕊️';
+    document.getElementById('end-title').textContent='The Priests win!';
+    document.getElementById('end-desc').textContent=`The real Sacrifice (${state.finalReason}) has been cast out. The faith is preserved.`;
+  } else if(state.finalReason==='skip'){
+    document.getElementById('end-emoji').textContent='😈';
+    document.getElementById('end-title').textContent='The Heretics win!';
+    document.getElementById('end-desc').textContent='A full round passed with no sacrifice. The heretics sow chaos unopposed.';
+  } else {
+    document.getElementById('end-emoji').textContent='😈';
+    document.getElementById('end-title').textContent='The Heretics win!';
+    document.getElementById('end-desc').textContent=`An innocent was cast out! The real Sacrifice escaped justice.`;
+  }
+  const er=document.getElementById('end-roles');
+  er.innerHTML='';
+  state.players.forEach(p=>{
+    const info=roleInfo[state.roles[p.id]];
+    const div=document.createElement('div');
+    div.className='player-row';
+    div.innerHTML=`<div class="avatar ${info.av}">${info.emoji}</div><span style="flex:1;font-size:15px">${p.name}</span><span class="badge ${info.cls}">${info.name}</span>`;
+    er.appendChild(div);
+  });
+}
+
+window.showPeekScreen = function(){
+  const state=gameState;
+  show('s-peek');
+  document.getElementById('peek-result').style.display='none';
+  const pl=document.getElementById('peek-list');
+  pl.innerHTML='';
+  state.players.filter(p=>p.alive&&p.id!==myId).forEach(p=>{
+    const btn=document.createElement('button');
+    btn.textContent='Peek at '+p.name;
+    btn.style.cssText='margin:4px 4px 0 0;font-size:13px';
+    btn.onclick=()=>doPeek(p.id,p.name,state);
+    pl.appendChild(btn);
+  });
+};
+
+function doPeek(pid,pname,state){
+  const role=state.roles[pid];
+  const info=roleInfo[role];
+  document.getElementById('peek-emoji').textContent=info.emoji;
+  document.getElementById('peek-role-text').textContent=`${pname} is a ${info.name}`;
+  document.getElementById('peek-result').style.display='block';
+  document.querySelectorAll('#peek-list button').forEach(b=>b.disabled=true);
+}
+
+window.donePeek = async function(){
+  peekUsed=true;
+  const roomRef=doc(db,'rooms',roomCode);
+  const newLog=[...(gameState.log||[]),`Round ${gameState.round}: The Pope used clairvoyance.`];
+  await updateDoc(roomRef,{ peekUsed:true, log:newLog });
+  show('s-game');
+};
+
+window.playAgain = function(){
+  revealShown=false; myVote=null; peekUsed=false;
+  location.reload();
+};
+</script>
+</body>
+</html>

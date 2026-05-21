@@ -1,2 +1,2 @@
 # sacrifice-game
-codification of the card game we made from gamejam.
+codification of the card game we made for gamejam.

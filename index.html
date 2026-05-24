@@ -539,12 +539,24 @@ function renderHostControls(state, alive){
 
   if(phase==='ritual'){
     const submitted=Object.keys(state.tokenSubmissions||{}).length;
-    const total=Object.values(state.tokenSubmissions||{}).reduce((a,b)=>a+b,0);
-    c.innerHTML=`<p style="font-size:13px;margin-bottom:.75rem">${submitted}/${alive.length} players have submitted tokens. Total so far: <strong style="color:#a89fff">${total}</strong>.</p>`;
+    const currentTotal=Object.values(state.tokenSubmissions||{}).reduce((a,b)=>a+b,0);
+    const minTotal=alive.length;
+    const maxTotal=alive.length*10;
+    const sliderVal=currentTotal>0?currentTotal:21;
+    c.innerHTML=`
+      <p style="font-size:13px;margin-bottom:.75rem">${submitted}/${alive.length} players submitted. Running total: <strong style="color:#a89fff">${currentTotal}</strong>.</p>
+      <label style="font-size:12px;color:#6de86d;display:block;margin-bottom:4px">Set ritual total directly (overrides submissions):</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem">
+        <input type="range" min="${minTotal}" max="${maxTotal}" value="${sliderVal}" id="host-total-slider" style="flex:1;accent-color:#5b4fff" oninput="document.getElementById('host-total-val').textContent=this.value" />
+        <span id="host-total-val" style="font-size:22px;font-weight:700;color:#a89fff;min-width:32px">${sliderVal}</span>
+      </div>`;
     const btn=document.createElement('button');
     btn.className='btn-host';
-    btn.textContent=`▶ Tally ritual (${submitted}/${alive.length} submitted)`;
-    btn.onclick=()=>hostTallyRitual(state,alive);
+    btn.textContent='Tally ritual with this total';
+    btn.onclick=()=>{
+      const overrideTotal=parseInt(document.getElementById('host-total-slider').value);
+      hostTallyRitualWithTotal(state,alive,overrideTotal);
+    };
     c.appendChild(btn);
   }
   else if(phase==='ritual-result'){
@@ -602,22 +614,12 @@ function renderHostControls(state, alive){
 }
 
 // ─── HOST ACTIONS ─────────────────────────────────────────────
-async function hostTallyRitual(state, alive){
-  const subs=state.tokenSubmissions||{};
-  // Fill in 5 for anyone who hasn't submitted (host forced tally)
-  const updates={};
-  alive.forEach(p=>{ if(subs[p.id]==null) updates[`tokenSubmissions.${p.id}`]=5; });
-  if(Object.keys(updates).length) await db_update(updates);
-  const freshSnap=await getDoc(doc(db,'rooms',roomCode));
-  const fresh=testMode?state:freshSnap.data();
-  const allSubs=fresh.tokenSubmissions||{};
-  alive.forEach(p=>{ if(allSubs[p.id]==null) allSubs[p.id]=5; });
-  const total=Object.values(allSubs).reduce((a,b)=>a+b,0);
-  const newLog=[...(fresh.log||[]),`Round ${fresh.round}: The congregation offered ${total} tokens.`];
+async function hostTallyRitualWithTotal(state, alive, total){
+  const newLog=[...(state.log||[]),`Round ${state.round}: The congregation offered ${total} tokens.`];
   if(total===21){
     await db_update({ status:'ended', finalWinner:'priest', finalTotal:total, log:newLog });
   } else {
-    await db_update({ phase:'ritual-result', ritualTotal:total, tokenSubmissions:allSubs, log:newLog });
+    await db_update({ phase:'ritual-result', ritualTotal:total, log:newLog });
   }
 }
 
@@ -650,7 +652,7 @@ async function hostTallyVotes(state, alive){
   if(result.eliminated){
     const updatedAlive=newPlayers.filter(p=>p.alive);
     const heretics=updatedAlive.filter(p=>state.roles[p.id]==='heretic');
-    if(heretics.length*2>=updatedAlive.length){
+    if(heretics.length > updatedAlive.length - heretics.length){
       await db_update({ status:'ended', finalWinner:'heretic', finalReason:'majority' }); return;
     }
   }
@@ -673,7 +675,7 @@ async function hostResolveNight(state){
   const newLog=[...(state.log||[]),`Round ${state.round}: ${killName} was found dead at dawn. Role not revealed.`];
   const updatedAlive=newPlayers.filter(p=>p.alive);
   const heretics=updatedAlive.filter(p=>state.roles[p.id]==='heretic');
-  if(heretics.length*2>=updatedAlive.length){
+  if(heretics.length > updatedAlive.length - heretics.length){
     await db_update({ players:newPlayers, log:newLog, status:'ended', finalWinner:'heretic', finalReason:'majority' }); return;
   }
   await db_update({ players:newPlayers, log:newLog, phase:'dawn', dawnKilled:killName, dawnAck:[], killTarget:null, killTargetName:null, tokenSubmissions:{}, round:state.round+1, nightDone:{} });
@@ -687,7 +689,17 @@ async function hostStartNextRound(state){
 async function db_update(updates){
   if(testMode){
     Object.assign(gameState, updates);
-    renderGame(gameState);
+    // Handle nested dot-notation keys (e.g. 'nightDone.prophet')
+    for(const key of Object.keys(updates)){
+      if(key.includes('.')){
+        const [a,b]=key.split('.');
+        if(!gameState[a]) gameState[a]={};
+        gameState[a][b]=updates[key];
+        delete gameState[key];
+      }
+    }
+    if(gameState.status==='ended') renderEnd(gameState);
+    else renderGame(gameState);
   } else {
     await updateDoc(doc(db,'rooms',roomCode), updates);
   }

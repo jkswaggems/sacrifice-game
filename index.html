@@ -1,1 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sacrifice</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0812; color: #f0eeff; min-height: 100vh; padding: 1rem; }
+h1 { font-size: 24px; font-weight: 600; margin-bottom: .2rem; }
+h2 { font-size: 17px; font-weight: 500; margin-bottom: .75rem; color: #c8bfee; }
+p { font-size: 15px; line-height: 1.6; color: #a09ac0; }
+.screen { display: none; max-width: 500px; margin: 0 auto; padding-top: 1.25rem; }
+.screen.active { display: block; }
+.card { background: #140f24; border: 1px solid #2a2248; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+.card-highlight { border-color: #5b4fff; background: #120d26; }
+input[type=text], input[type=number], select {
+  width: 100%; font-size: 15px; padding: 10px 13px;
+  border: 1px solid #2a2248; border-radius: 9px;
+  background: #0a0812; color: #f0eeff; margin: 5px 0 12px; font-family: inherit;
+}
+input[type=text]:focus, input[type=number]:focus, select:focus { outline: none; border-color: #7c6fff; }
+input[type=range] { width: 100%; accent-color: #5b4fff; margin: 8px 0; }
+button { font-size: 14px; font-weight: 500; padding: 10px 18px; border: 1px solid #2a2248; border-radius: 9px; background: transparent; color: #f0eeff; cursor: pointer; font-family: inherit; transition: all .15s; }
+button:hover { background: #2a2248; }
+button:disabled { opacity: .35; cursor: not-allowed; }
+.btn-primary { background: #5b4fff; color: #fff; border-color: #5b4fff; }
+.btn-primary:hover { background: #4a3fee; }
+.btn-danger { background: #7a1e0a; color: #fde8df; border-color: #7a1e0a; }
+.btn-danger:hover { background: #5e1608; }
+.btn-success { background: #0c5e44; color: #d0f0e4; border-color: #0c5e44; }
+.btn-success:hover { background: #094832; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+.b-priest { background: #0a2e1f; color: #4dbe8e; }
+.b-prophet { background: #1a1050; color: #9a8fff; }
+.b-heretic { background: #2e0d04; color: #e8805a; }
+.b-unknown { background: #1a1730; color: #7870a0; }
+.player-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1c1830; }
+.player-row:last-child { border-bottom: none; }
+.player-row.eliminated { opacity: .3; }
+.player-row.eliminated .pname { text-decoration: line-through; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; background: #1c1830; color: #7870a0; }
+.stat-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+.stat { background: #140f24; border: 1px solid #2a2248; border-radius: 8px; padding: 5px 12px; font-size: 13px; color: #7870a0; }
+.stat strong { color: #f0eeff; }
+.room-code { font-size: 40px; font-weight: 700; letter-spacing: 8px; color: #a89fff; text-align: center; padding: 1rem 0; }
+.waiting-pill { display: inline-block; background: #1c1830; border: 1px solid #2a2248; border-radius: 20px; padding: 4px 12px; font-size: 13px; margin: 3px; color: #b0a8cc; }
+.waiting-pill.me { border-color: #5b4fff; color: #a89fff; }
+.log { max-height: 120px; overflow-y: auto; }
+.log-entry { font-size: 13px; color: #7870a0; padding: 4px 0; border-bottom: 1px solid #1c1830; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #2a2248; border-top-color: #7c6fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.role-big { font-size: 54px; display: block; text-align: center; margin-bottom: .5rem; }
+.error { color: #e8805a; font-size: 13px; margin-top: 6px; min-height: 18px; }
+.token-display { font-size: 36px; font-weight: 700; color: #a89fff; text-align: center; margin: .5rem 0; }
+.token-total { font-size: 22px; font-weight: 600; text-align: center; color: #f0eeff; margin: .5rem 0; }
+.token-bar { height: 8px; border-radius: 4px; background: #1c1830; margin: .5rem 0; overflow: hidden; }
+.token-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg,#5b4fff,#a89fff); transition: width .4s; }
+.phase-label { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; margin-bottom: .75rem; }
+.phase-ritual { background: #1a1050; color: #9a8fff; }
+.phase-sacrifice { background: #2e0d04; color: #e8805a; }
+.phase-night { background: #0a0d2e; color: #6070e8; }
+.oath-box { background: #0e0c20; border: 1px solid #2a2248; border-radius: 10px; padding: 1rem; text-align: center; margin: .75rem 0; font-style: italic; color: #c8bfee; font-size: 15px; line-height: 1.7; }
+.night-overlay { background: #060410; border-radius: 14px; padding: 1.5rem; text-align: center; }
+#status-msg { font-size: 13px; color: #7870a0; margin-top: .5rem; min-height: 18px; }
+.token-submitted-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #1c1830; font-size: 14px; }
+.token-submitted-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
 
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div style="text-align:center; padding: 1.5rem 0 1rem">
+    <span style="font-size:48px">🔥</span>
+    <h1 style="margin-top:.25rem">The Sacrifice</h1>
+    <p style="font-size:13px; margin-top:.25rem">A sacred game of ritual, deception, and faith · 6–8 players</p>
+  </div>
+  <div class="card">
+    <h2>Create a game</h2>
+    <label style="font-size:13px;color:#7870a0">Your name</label>
+    <input type="text" id="host-name" placeholder="Enter your name" maxlength="20" />
+    <label style="font-size:13px;color:#7870a0">Number of heretics</label>
+    <select id="heretic-count">
+      <option value="1">1 heretic</option>
+      <option value="2" selected>2 heretics</option>
+      <option value="3">3 heretics</option>
+    </select>
+    <button class="btn-primary" onclick="createRoom()">Create room →</button>
+    <div class="error" id="err-create"></div>
+  </div>
+  <div class="card">
+    <h2>Join a game</h2>
+    <label style="font-size:13px;color:#7870a0">Your name</label>
+    <input type="text" id="join-name" placeholder="Enter your name" maxlength="20" />
+    <label style="font-size:13px;color:#7870a0">Room code</label>
+    <input type="text" id="join-code" placeholder="e.g. ABCD" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px" />
+    <button class="btn-primary" onclick="joinRoom()">Join room →</button>
+    <div class="error" id="err-join"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="s-lobby" class="screen">
+  <h1>Sacred gathering</h1>
+  <p style="margin-bottom:1rem;font-size:13px">Share this code with all players:</p>
+  <div class="card" style="text-align:center">
+    <div class="room-code" id="lobby-code">----</div>
+  </div>
+  <div class="card">
+    <h2>The congregation (<span id="lobby-count">0</span>/8)</h2>
+    <div id="lobby-players" style="margin-bottom:.5rem"></div>
+    <p style="font-size:13px;color:#7870a0">Need at least 6 players to begin the ritual.</p>
+  </div>
+  <div id="host-start-area" style="display:none;margin-bottom:1rem">
+    <button class="btn-primary" id="start-btn" onclick="startGame()" disabled>Begin the ritual →</button>
+    <div id="status-msg"></div>
+  </div>
+  <div id="waiting-msg" style="display:none">
+    <p style="font-size:13px;color:#7870a0">Waiting for the high priest to begin…</p>
+  </div>
+</div>
+
+<!-- OPENING OATH -->
+<div id="s-oath" class="screen">
+  <h1 style="text-align:center;margin-bottom:.5rem">🕯️ Enter the Circle</h1>
+  <p style="text-align:center;font-size:13px;margin-bottom:1rem">Each player must speak the oath aloud before the game begins.</p>
+  <div class="card">
+    <div class="oath-box" id="oath-text">
+      "I enter this sacred space willingly.<br>I offer my devotion to the circle.<br>What is revealed here, stays within the flame."
+    </div>
+    <p style="font-size:13px;text-align:center;margin:.75rem 0">Have each player read the oath aloud, then tap below.</p>
+    <div style="text-align:center">
+      <button class="btn-primary" onclick="goToReveal()">All have spoken the oath →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROLE REVEAL -->
+<div id="s-reveal" class="screen">
+  <h1 style="margin-bottom:.25rem">Your sacred role</h1>
+  <p style="font-size:13px;margin-bottom:1rem">Keep this screen private. Do not show others.</p>
+  <div class="card" id="reveal-card" style="text-align:center;padding:2rem 1.25rem">
+    <p id="reveal-player-name" style="font-size:16px;font-weight:500;margin-bottom:1rem;color:#c8bfee"></p>
+    <button class="btn-primary" id="reveal-tap-btn" onclick="revealRole()">Tap to see your role</button>
+    <div id="reveal-content" style="display:none">
+      <span class="role-big" id="reveal-emoji"></span>
+      <p style="font-size:22px;font-weight:600;color:#f0eeff;margin-bottom:.35rem" id="reveal-role-name"></p>
+      <p style="font-size:14px;color:#a09ac0;margin-bottom:1rem" id="reveal-role-desc"></p>
+      <p style="font-size:13px;color:#e8805a;font-weight:500" id="reveal-partner"></p>
+      <div style="margin-top:1.25rem">
+        <button class="btn-primary" onclick="nextPlayerReveal()">Done — pass the device →</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="background:#0a0d20;border-color:#1a2048">
+    <p style="font-size:12px;color:#5060a0"><strong style="color:#7080c0">📜 How to play:</strong> Each round has 3 phases — Ritual (submit tokens totaling 21 to win), Sacrifice (vote someone out), and Night (heretics kill, prophet peeks). Priests & Prophet win if the ritual reaches exactly 21. Heretics win if they become the majority.</p>
+  </div>
+</div>
+
+<!-- MAIN GAME -->
+<div id="s-game" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+    <h1>🔥 The Sacrifice</h1>
+    <div class="stat">Round <strong id="g-round">1</strong></div>
+  </div>
+  <div class="stat-bar">
+    <div class="stat">Alive: <strong id="g-alive">0</strong></div>
+    <div class="stat">Tokens: <strong id="g-token-pool">0</strong>/21</div>
+    <div class="stat">You: <strong id="g-myname"></strong></div>
+  </div>
+
+  <div class="card">
+    <h2>The congregation</h2>
+    <div id="g-players"></div>
+  </div>
+
+  <!-- RITUAL PHASE -->
+  <div class="card card-highlight" id="g-phase-ritual" style="display:none">
+    <span class="phase-label phase-ritual">⚗️ Ritual Phase</span>
+    <h2>Submit your ritual tokens</h2>
+    <p style="font-size:13px;margin-bottom:1rem">The congregation must collectively offer exactly <strong style="color:#a89fff">21 tokens</strong> to complete the ritual. Discuss how many each person will contribute, then secretly submit your amount.</p>
+    <div id="g-ritual-input">
+      <label style="font-size:13px;color:#7870a0">Your token offering (1–10):</label>
+      <div class="token-display" id="ritual-token-val">5</div>
+      <input type="range" min="1" max="10" value="5" id="ritual-slider" oninput="updateSlider()" />
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#7870a0"><span>1</span><span>10</span></div>
+      <button class="btn-primary" style="width:100%;margin-top:1rem" onclick="submitTokens()">Submit offering →</button>
+    </div>
+    <div id="g-ritual-waiting" style="display:none;text-align:center;padding:.5rem 0">
+      <span class="spinner"></span><span style="font-size:13px;color:#7870a0">Waiting for all offerings…</span>
+      <div style="font-size:13px;color:#7870a0;margin-top:.4rem" id="g-ritual-progress"></div>
+    </div>
+  </div>
+
+  <!-- RITUAL RESULT -->
+  <div class="card" id="g-phase-ritual-result" style="display:none;text-align:center;padding:1.5rem">
+    <span class="role-big" id="rr-emoji"></span>
+    <p style="font-size:20px;font-weight:600;color:#f0eeff;margin-bottom:.5rem" id="rr-title"></p>
+    <p style="font-size:14px;margin-bottom:.75rem" id="rr-desc"></p>
+    <div id="rr-token-breakdown" style="text-align:left;margin-bottom:1rem"></div>
+    <button class="btn-primary" id="rr-next-btn" onclick="proceedAfterRitual()" style="display:none">Proceed to sacrifice →</button>
+  </div>
+
+  <!-- SACRIFICE PHASE -->
+  <div class="card" id="g-phase-sacrifice" style="display:none">
+    <span class="phase-label phase-sacrifice">⚔️ Sacrifice Phase</span>
+    <h2>Vote to sacrifice a member</h2>
+    <p style="font-size:13px;margin-bottom:1rem">The ritual failed. Someone must be sacrificed to appease the god. Vote on who to cast out. Majority rules — their role will not be revealed.</p>
+    <div id="g-sacrifice-nominate">
+      <p style="font-size:13px;font-weight:500;color:#c8bfee;margin-bottom:.5rem">Nominate someone:</p>
+      <div id="g-nominate-list"></div>
+      <div style="margin-top:.75rem;border-top:1px solid #1c1830;padding-top:.75rem">
+        <button onclick="skipToNight()" style="font-size:13px">Skip — go straight to night</button>
+      </div>
+    </div>
+    <div id="g-sacrifice-vote" style="display:none">
+      <p style="font-size:14px;font-weight:500;margin-bottom:.75rem">Cast out <span id="g-nom-name" style="color:#e8805a"></span>?</p>
+      <div id="g-vote-list"></div>
+      <div id="g-vote-waiting" style="display:none;margin-top:.75rem">
+        <span class="spinner"></span><span style="font-size:13px;color:#7870a0">Waiting for all votes…</span>
+        <div style="font-size:13px;color:#7870a0;margin-top:.4rem" id="g-vote-progress"></div>
+      </div>
+      <div id="g-vote-buttons" style="margin-top:.75rem;display:flex;gap:8px">
+        <button class="btn-danger" onclick="castVote('yes')">Yes — sacrifice them</button>
+        <button class="btn-success" onclick="castVote('no')">No — spare them</button>
+      </div>
+    </div>
+    <div id="g-sacrifice-result" style="display:none;text-align:center;padding:.75rem 0">
+      <p style="font-size:17px;font-weight:600;color:#f0eeff;margin-bottom:.35rem" id="g-sac-result-title"></p>
+      <p style="font-size:13px;margin-bottom:1rem" id="g-sac-result-desc"></p>
+      <button class="btn-primary" onclick="proceedToNight()">Proceed to night →</button>
+    </div>
+  </div>
+
+  <!-- NIGHT PHASE -->
+  <div class="card" id="g-phase-night" style="display:none">
+    <span class="phase-label phase-night">🌑 Night Phase</span>
+    <div class="night-overlay">
+      <p style="font-size:14px;color:#6070e8;margin-bottom:1rem">The congregation sleeps. The heretics stir in the darkness…</p>
+      <div id="g-night-heretic" style="display:none">
+        <h2 style="color:#e8805a">Heretics — choose your victim</h2>
+        <p style="font-size:13px;margin-bottom:.75rem">Pick one person to murder tonight. Their role will not be revealed.</p>
+        <div id="g-kill-list"></div>
+        <div id="g-night-waiting" style="display:none;margin-top:.75rem">
+          <span class="spinner"></span><span style="font-size:13px;color:#7870a0">Waiting for heretics to decide…</span>
+        </div>
+      </div>
+      <div id="g-night-prophet" style="display:none">
+        <h2 style="color:#9a8fff">Prophet — use your sight</h2>
+        <p style="font-size:13px;margin-bottom:.75rem">Choose one player to see how many tokens they offered in the ritual this round.</p>
+        <div id="g-prophet-list"></div>
+        <div id="peek-result" style="display:none;background:#1a1050;border-radius:10px;padding:1rem;margin-top:.75rem;text-align:center">
+          <p style="font-size:14px;color:#9a8fff;margin-bottom:.25rem" id="peek-name-text"></p>
+          <p style="font-size:28px;font-weight:700;color:#f0eeff" id="peek-token-text"></p>
+          <p style="font-size:12px;color:#7870a0">ritual tokens this round</p>
+          <button class="btn-primary" style="margin-top:.75rem" onclick="doneProphet()">Done →</button>
+        </div>
+      </div>
+      <div id="g-night-priest" style="display:none">
+        <p style="font-size:14px;color:#4dbe8e;margin-bottom:.5rem">🕊️ You are a Priest. Close your eyes and sleep.</p>
+        <p style="font-size:13px;color:#7870a0">The night will pass soon…</p>
+        <div id="g-priest-waiting" style="margin-top:.75rem">
+          <span class="spinner"></span><span style="font-size:13px;color:#7870a0">Waiting for night to end…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAWN -->
+  <div class="card" id="g-phase-dawn" style="display:none;text-align:center;padding:1.5rem">
+    <span style="font-size:36px">🌅</span>
+    <p style="font-size:18px;font-weight:600;color:#f0eeff;margin:.5rem 0">Dawn breaks…</p>
+    <p style="font-size:14px;margin-bottom:1rem" id="g-dawn-desc"></p>
+    <button class="btn-primary" onclick="startNewRound()">Begin round <span id="g-next-round-num"></span> →</button>
+  </div>
+
+  <div class="card" style="margin-top:.5rem">
+    <h2>Sacred log</h2>
+    <div class="log" id="g-log"></div>
+  </div>
+</div>
+
+<!-- END -->
+<div id="s-end" class="screen">
+  <div class="card" style="text-align:center;padding:2rem 1.25rem">
+    <span class="role-big" id="end-emoji"></span>
+    <h1 id="end-title" style="margin-bottom:.5rem"></h1>
+    <p style="margin-bottom:1.5rem" id="end-desc"></p>
+    <h2 style="text-align:left;margin-bottom:.5rem">All roles revealed</h2>
+    <div id="end-roles" style="text-align:left"></div>
+    <button class="btn-primary" style="margin-top:1.5rem;width:100%" onclick="location.reload()">Play again →</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBalJQequQz7a-1sJCOkux2yHLkwqdtKKA",
+  authDomain: "sacrifice-game.firebaseapp.com",
+  projectId: "sacrifice-game",
+  storageBucket: "sacrifice-game.firebasestorage.app",
+  messagingSenderId: "472891316325",
+  appId: "1:472891316325:web:23392f23e41833739c0e8c"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let myId = Math.random().toString(36).slice(2,10);
+let myName = '';
+let roomCode = '';
+let isHost = false;
+let myRole = '';
+let gameState = null;
+let unsubscribe = null;
+let revealShown = false;
+let revealQueue = [];
+let revealIdx = 0;
+let prophPeeked = false;
+
+const roleInfo = {
+  priest:  { emoji:'🕊️', name:'Priest',  cls:'b-priest',  desc:'Find the heretics and complete the ritual. Work together to submit exactly 21 tokens.' },
+  prophet: { emoji:'🔮', name:'Prophet', cls:'b-prophet', desc:'You are priest-aligned. Each night you may see how many tokens one player offered in the ritual. Use this knowledge to expose the heretics.' },
+  heretic: { emoji:'😈', name:'Heretic', cls:'b-heretic', desc:'Sabotage the ritual by skewing the token total away from 21. Each night you and your fellow heretics choose someone to eliminate. Win by becoming the majority.' }
+};
+
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function genCode(){ return Math.random().toString(36).slice(2,6).toUpperCase(); }
+function el(id){ return document.getElementById(id); }
+
+function assignRoles(players, hereticCount){
+  const shuffled = [...players].sort(()=>Math.random()-.5);
+  const roles = {};
+  roles[shuffled[0].id] = 'prophet';
+  for(let i=1; i<=hereticCount; i++) roles[shuffled[i].id] = 'heretic';
+  for(let i=hereticCount+1; i<shuffled.length; i++) roles[shuffled[i].id] = 'priest';
+  return roles;
+}
+
+// --- HOME ---
+window.createRoom = async function(){
+  const name = el('host-name').value.trim();
+  if(!name){ el('err-create').textContent='Please enter your name.'; return; }
+  myName=name; isHost=true;
+  roomCode=genCode();
+  const hereticCount = parseInt(el('heretic-count').value);
+  await setDoc(doc(db,'rooms',roomCode),{
+    code:roomCode, status:'lobby', host:myId, hereticCount,
+    players:[{id:myId,name:myName,alive:true}],
+    roles:{}, round:1, phase:'ritual',
+    tokenSubmissions:{}, votes:{},
+    nominatedId:null, nominatedName:null,
+    killVotes:{}, nightDone:{},
+    log:[], createdAt:serverTimestamp()
+  });
+  listenToRoom();
+  el('lobby-code').textContent=roomCode;
+  el('host-start-area').style.display='block';
+  show('s-lobby');
+};
+
+window.joinRoom = async function(){
+  const name=el('join-name').value.trim();
+  const code=el('join-code').value.trim().toUpperCase();
+  if(!name){ el('err-join').textContent='Please enter your name.'; return; }
+  if(!code){ el('err-join').textContent='Please enter a room code.'; return; }
+  const snap=await getDoc(doc(db,'rooms',code));
+  if(!snap.exists()){ el('err-join').textContent='Room not found.'; return; }
+  const data=snap.data();
+  if(data.status!=='lobby'){ el('err-join').textContent='That game already started.'; return; }
+  if(data.players.length>=8){ el('err-join').textContent='Room is full.'; return; }
+  myName=name; roomCode=code;
+  await updateDoc(doc(db,'rooms',code),{ players:arrayUnion({id:myId,name:myName,alive:true}) });
+  listenToRoom();
+  el('lobby-code').textContent=roomCode;
+  el('waiting-msg').style.display='block';
+  show('s-lobby');
+};
+
+function listenToRoom(){
+  if(unsubscribe) unsubscribe();
+  unsubscribe=onSnapshot(doc(db,'rooms',roomCode),snap=>{
+    if(!snap.exists()) return;
+    gameState=snap.data();
+    handleState(gameState);
+  });
+}
+
+function handleState(state){
+  if(state.status==='lobby'){ renderLobby(state); return; }
+  if(state.status==='ended'){ renderEnd(state); return; }
+  if(!revealShown){ revealShown=true; buildRevealQueue(state); showNextReveal(); return; }
+  if(state.status==='playing') renderGamePhase(state);
+}
+
+// --- LOBBY ---
+function renderLobby(state){
+  el('lobby-count').textContent=state.players.length;
+  const pl=el('lobby-players'); pl.innerHTML='';
+  state.players.forEach(p=>{
+    const s=document.createElement('span');
+    s.className='waiting-pill'+(p.id===myId?' me':'');
+    s.textContent=p.id===myId?p.name+' (you)':p.name;
+    pl.appendChild(s);
+  });
+  if(isHost){
+    el('start-btn').disabled=state.players.length<6;
+    el('status-msg').textContent=state.players.length<6?`Need ${6-state.players.length} more player(s).`:'Ready to begin!';
+  }
+}
+
+window.startGame = async function(){
+  const snap=await getDoc(doc(db,'rooms',roomCode));
+  const state=snap.data();
+  const roles=assignRoles(state.players,state.hereticCount);
+  await updateDoc(doc(db,'rooms',roomCode),{ status:'oath', roles });
+};
+
+// --- OATH ---
+// Oath is shown locally after status changes
+function showOath(state){
+  myRole=state.roles[myId];
+  show('s-oath');
+}
+
+window.goToReveal = function(){
+  buildRevealQueue(gameState);
+  revealIdx=0;
+  showNextReveal();
+};
+
+// --- ROLE REVEAL (local, pass device) ---
+function buildRevealQueue(state){
+  revealQueue=state.players.filter(p=>p.alive);
+}
+
+function showNextReveal(){
+  const state=gameState;
+  if(revealIdx>=revealQueue.length){
+    // All revealed — update status to playing
+    if(isHost) updateDoc(doc(db,'rooms',roomCode),{status:'playing',phase:'ritual'});
+    show('s-game');
+    renderGamePhase(gameState);
+    return;
+  }
+  const p=revealQueue[revealIdx];
+  el('reveal-player-name').textContent=p.name+', tap when ready';
+  el('reveal-content').style.display='none';
+  el('reveal-tap-btn').style.display='inline-block';
+  show('s-reveal');
+}
+
+window.revealRole = function(){
+  const state=gameState;
+  const p=revealQueue[revealIdx];
+  const role=state.roles[p.id];
+  const info=roleInfo[role];
+  el('reveal-emoji').textContent=info.emoji;
+  el('reveal-role-name').textContent=info.name;
+  el('reveal-role-desc').textContent=info.desc;
+  if(role==='heretic'){
+    const partners=state.players.filter(x=>x.id!==p.id&&state.roles[x.id]==='heretic');
+    el('reveal-partner').textContent=partners.length?'🤝 Fellow heretic(s): '+partners.map(x=>x.name).join(', '):'';
+  } else {
+    el('reveal-partner').textContent='';
+  }
+  if(p.id===myId){ myRole=role; }
+  el('reveal-tap-btn').style.display='none';
+  el('reveal-content').style.display='block';
+};
+
+window.nextPlayerReveal = function(){ revealIdx++; showNextReveal(); };
+
+// --- RENDER GAME PHASE ---
+function renderGamePhase(state){
+  if(!state||state.status==='oath'){ showOath(state); return; }
+  if(state.status!=='playing') return;
+
+  const alive=state.players.filter(p=>p.alive);
+  el('g-round').textContent=state.round;
+  el('g-alive').textContent=alive.length;
+  el('g-token-pool').textContent=Object.values(state.tokenSubmissions||{}).reduce((a,b)=>a+b,0);
+  el('g-myname').textContent=myName;
+
+  // Players list
+  const pl=el('g-players'); pl.innerHTML='';
+  state.players.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='player-row'+(p.alive?'':' eliminated');
+    row.innerHTML=`<div class="avatar">${p.name[0].toUpperCase()}</div>
+      <span class="pname" style="flex:1;font-size:15px">${p.name}${p.id===myId?' <span style="font-size:11px;color:#7870a0">(you)</span>':''}</span>`;
+    pl.appendChild(row);
+  });
+
+  // Log
+  const logEl=el('g-log'); logEl.innerHTML='';
+  (state.log||[]).slice().reverse().forEach(msg=>{
+    const d=document.createElement('div'); d.className='log-entry'; d.textContent=msg; logEl.appendChild(d);
+  });
+
+  // Hide all phase panels
+  ['g-phase-ritual','g-phase-ritual-result','g-phase-sacrifice','g-phase-night','g-phase-dawn'].forEach(id=>el(id).style.display='none');
+
+  if(state.phase==='ritual') renderRitual(state,alive);
+  else if(state.phase==='ritual-result') renderRitualResult(state,alive);
+  else if(state.phase==='sacrifice') renderSacrifice(state,alive);
+  else if(state.phase==='night') renderNight(state,alive);
+  else if(state.phase==='dawn') renderDawn(state);
+}
+
+// --- RITUAL ---
+window.updateSlider=function(){
+  el('ritual-token-val').textContent=el('ritual-slider').value;
+};
+
+function renderRitual(state,alive){
+  el('g-phase-ritual').style.display='block';
+  const mySubmission=state.tokenSubmissions?.[myId];
+  if(mySubmission!=null){
+    el('g-ritual-input').style.display='none';
+    el('g-ritual-waiting').style.display='block';
+    const submitted=Object.keys(state.tokenSubmissions||{}).length;
+    el('g-ritual-progress').textContent=`${submitted} of ${alive.length} offered`;
+  } else {
+    el('g-ritual-input').style.display='block';
+    el('g-ritual-waiting').style.display='none';
+  }
+  // Check if all submitted (host tallies)
+  if(isHost && alive.length>0 && Object.keys(state.tokenSubmissions||{}).length>=alive.length){
+    tallyRitual(state,alive);
+  }
+}
+
+window.submitTokens=async function(){
+  const val=parseInt(el('ritual-slider').value);
+  await updateDoc(doc(db,'rooms',roomCode),{ [`tokenSubmissions.${myId}`]:val });
+};
+
+async function tallyRitual(state,alive){
+  const total=Object.values(state.tokenSubmissions).reduce((a,b)=>a+b,0);
+  const newLog=[...(state.log||[]),`Round ${state.round}: Ritual total was ${total} tokens.`];
+  if(total===21){
+    await updateDoc(doc(db,'rooms',roomCode),{ status:'ended', finalWinner:'priest', finalTotal:total, log:newLog });
+  } else {
+    await updateDoc(doc(db,'rooms',roomCode),{ phase:'ritual-result', ritualTotal:total, log:newLog });
+  }
+}
+
+function renderRitualResult(state,alive){
+  el('g-phase-ritual-result').style.display='block';
+  const total=state.ritualTotal||0;
+  el('rr-emoji').textContent=total===21?'✨':'💔';
+  el('rr-title').textContent=total===21?'The ritual is complete!':total<21?`Only ${total} tokens offered — the god is unsatisfied.`:`${total} tokens offered — too much, the god recoils.`;
+  el('rr-desc').textContent=total===21?'The priests have prevailed!':'The ritual has failed. A sacrifice must be made.';
+  // Show who submitted what (anonymous — just totals per player for the host only, or skip)
+  el('rr-token-breakdown').innerHTML='';
+  el('rr-next-btn').style.display=isHost?'inline-block':'none';
+}
+
+window.proceedAfterRitual=async function(){
+  await updateDoc(doc(db,'rooms',roomCode),{ phase:'sacrifice', nominatedId:null, nominatedName:null, votes:{} });
+};
+
+// --- SACRIFICE ---
+function renderSacrifice(state,alive){
+  el('g-phase-sacrifice').style.display='block';
+  el('g-sacrifice-nominate').style.display='none';
+  el('g-sacrifice-vote').style.display='none';
+  el('g-sacrifice-result').style.display='none';
+
+  if(!state.nominatedId){
+    el('g-sacrifice-nominate').style.display='block';
+    const nl=el('g-nominate-list'); nl.innerHTML='';
+    alive.filter(p=>p.id!==myId).forEach(p=>{
+      const btn=document.createElement('button');
+      btn.textContent='Nominate '+p.name;
+      btn.style.cssText='margin:4px 4px 0 0;font-size:13px';
+      btn.onclick=()=>nominatePlayer(p.id,p.name,state);
+      nl.appendChild(btn);
+    });
+  } else if(state.sacrificeResult){
+    renderSacrificeResult(state);
+  } else {
+    renderVote(state,alive);
+  }
+}
+
+window.nominatePlayer=async function(pid,pname,state){
+  const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} nominated ${pname} for sacrifice.`];
+  await updateDoc(doc(db,'rooms',roomCode),{ nominatedId:pid, nominatedName:pname, votes:{}, log:newLog });
+};
+
+window.skipToNight=async function(){
+  const snap=await getDoc(doc(db,'rooms',roomCode));
+  const state=snap.data();
+  const newLog=[...(state.log||[]),`Round ${state.round}: No sacrifice was made — the congregation moves to night.`];
+  await updateDoc(doc(db,'rooms',roomCode),{ phase:'night', killVotes:{}, nightDone:{}, log:newLog });
+};
+
+function renderVote(state,alive){
+  el('g-sacrifice-vote').style.display='block';
+  el('g-nom-name').textContent=state.nominatedName||'';
+  const myVoteVal=state.votes?.[myId];
+  const me=state.players.find(p=>p.id===myId);
+  if(!me?.alive){ el('g-vote-buttons').style.display='none'; el('g-vote-waiting').style.display='block'; return; }
+  if(myVoteVal){
+    el('g-vote-buttons').style.display='none';
+    el('g-vote-waiting').style.display='block';
+  } else {
+    el('g-vote-buttons').style.display='flex';
+    el('g-vote-waiting').style.display='none';
+  }
+  const votedCount=Object.keys(state.votes||{}).length;
+  el('g-vote-progress').textContent=`${votedCount} of ${alive.length} voted`;
+  if(isHost && alive.length>0 && votedCount>=alive.length) tallyVotes(state,alive);
+}
+
+window.castVote=async function(val){
+  el('g-vote-buttons').style.display='none';
+  el('g-vote-waiting').style.display='block';
+  await updateDoc(doc(db,'rooms',roomCode),{ [`votes.${myId}`]:val });
+};
+
+async function tallyVotes(state,alive){
+  const votes=state.votes||{};
+  const yes=Object.values(votes).filter(v=>v==='yes').length;
+  const no=Object.values(votes).filter(v=>v==='no').length;
+  const nominated=state.players.find(p=>p.id===state.nominatedId);
+  let newPlayers=[...state.players];
+  let newLog=[...(state.log||[])];
+  let result;
+  if(yes>no){
+    newPlayers=newPlayers.map(p=>p.id===state.nominatedId?{...p,alive:false}:p);
+    newLog.push(`Round ${state.round}: ${nominated.name} was sacrificed (${yes}–${no}). Their role was not revealed.`);
+    result={eliminated:true, name:nominated.name, yes, no};
+  } else {
+    newLog.push(`Round ${state.round}: The vote to sacrifice ${nominated.name} failed (${yes}–${no}).`);
+    result={eliminated:false, name:nominated.name, yes, no};
+  }
+  await updateDoc(doc(db,'rooms',roomCode),{ players:newPlayers, sacrificeResult:result, log:newLog });
+}
+
+function renderSacrificeResult(state){
+  el('g-sacrifice-result').style.display='block';
+  const r=state.sacrificeResult;
+  el('g-sac-result-title').textContent=r.eliminated?`${r.name} has been sacrificed.`:`The vote failed — ${r.name} is spared.`;
+  el('g-sac-result-desc').textContent=`Vote: ${r.yes} yes, ${r.no} no. ${r.eliminated?'Their role remains unknown.':'The congregation proceeds to night.'}`;
+  // Check heretic majority after elimination
+  if(isHost && r.eliminated){
+    const alive=state.players.filter(p=>p.alive);
+    const heretics=alive.filter(p=>state.roles[p.id]==='heretic');
+    if(heretics.length*2>=alive.length){
+      updateDoc(doc(db,'rooms',roomCode),{ status:'ended', finalWinner:'heretic', finalReason:'majority' });
+      return;
+    }
+  }
+}
+
+window.proceedToNight=async function(){
+  await updateDoc(doc(db,'rooms',roomCode),{ phase:'night', killVotes:{}, nightDone:{}, sacrificeResult:null });
+};
+
+// --- NIGHT ---
+function renderNight(state,alive){
+  el('g-phase-night').style.display='block';
+  el('g-night-heretic').style.display='none';
+  el('g-night-prophet').style.display='none';
+  el('g-night-priest').style.display='none';
+
+  if(myRole==='heretic'){
+    renderHereticNight(state,alive);
+  } else if(myRole==='prophet'){
+    renderProphetNight(state,alive);
+  } else {
+    el('g-night-priest').style.display='block';
+  }
+
+  // Host checks if night is done
+  if(isHost){
+    const heretics=alive.filter(p=>state.roles[p.id]==='heretic');
+    const prophet=alive.find(p=>state.roles[p.id]==='prophet');
+    const killDecided=state.killTarget!=null;
+    const prophetDone=!prophet||state.nightDone?.prophet;
+    if(killDecided && prophetDone) resolveNight(state);
+  }
+}
+
+function renderHereticNight(state,alive){
+  el('g-night-heretic').style.display='block';
+  const killTarget=state.killTarget;
+  if(killTarget!=null){
+    el('g-night-heretic').innerHTML='<h2 style="color:#e8805a">Heretics — vote cast</h2><p style="font-size:13px;color:#7870a0">Your decision has been made. Waiting for night to end…</p><div style="margin-top:.75rem"><span class="spinner"></span></div>';
+    return;
+  }
+  const kl=el('g-kill-list'); kl.innerHTML='';
+  // Only show heretics the kill buttons if no vote yet
+  alive.filter(p=>state.roles[p.id]!=='heretic').forEach(p=>{
+    const btn=document.createElement('button');
+    btn.textContent='Kill '+p.name;
+    btn.style.cssText='margin:4px 4px 0 0;font-size:13px;border-color:#7a1e0a;color:#e8805a';
+    btn.onclick=()=>voteKill(p.id,p.name,state);
+    kl.appendChild(btn);
+  });
+}
+
+async function voteKill(pid,pname,state){
+  // Simple: first heretic to choose sets the target
+  await updateDoc(doc(db,'rooms',roomCode),{ killTarget:pid, killTargetName:pname });
+}
+
+function renderProphetNight(state,alive){
+  el('g-night-prophet').style.display='block';
+  if(prophPeeked||(state.nightDone?.prophet)){
+    el('g-night-prophet').innerHTML='<h2 style="color:#9a8fff">Sight used</h2><p style="font-size:13px;color:#7870a0">Your vision is complete. Waiting for night to end…</p><div style="margin-top:.75rem"><span class="spinner"></span></div>';
+    return;
+  }
+  const pl=el('g-prophet-list'); pl.innerHTML='';
+  alive.filter(p=>p.id!==myId).forEach(p=>{
+    const btn=document.createElement('button');
+    btn.textContent='Reveal '+p.name+'\'s offering';
+    btn.style.cssText='margin:4px 4px 0 0;font-size:13px;border-color:#2a1a5c;color:#9a8fff';
+    btn.onclick=()=>prophetPeek(p.id,p.name,state);
+    pl.appendChild(btn);
+  });
+}
+
+async function prophetPeek(pid,pname,state){
+  prophPeeked=true;
+  const tokens=state.tokenSubmissions?.[pid]||'?';
+  el('peek-name-text').textContent=pname+' offered:';
+  el('peek-token-text').textContent=tokens;
+  el('peek-result').style.display='block';
+  document.querySelectorAll('#g-prophet-list button').forEach(b=>b.disabled=true);
+}
+
+window.doneProphet=async function(){
+  await updateDoc(doc(db,'rooms',roomCode),{ 'nightDone.prophet':true });
+};
+
+async function resolveNight(state){
+  const killed=state.players.find(p=>p.id===state.killTarget);
+  let newPlayers=state.players.map(p=>p.id===state.killTarget?{...p,alive:false}:p);
+  const newLog=[...(state.log||[]),`Round ${state.round}: During the night, ${killed.name} was murdered. Their role was not revealed.`];
+  // Check heretic majority
+  const alive=newPlayers.filter(p=>p.alive);
+  const heretics=alive.filter(p=>state.roles[p.id]==='heretic');
+  if(heretics.length*2>=alive.length){
+    await updateDoc(doc(db,'rooms',roomCode),{ players:newPlayers, log:newLog, status:'ended', finalWinner:'heretic', finalReason:'majority' });
+    return;
+  }
+  await updateDoc(doc(db,'rooms',roomCode),{
+    players:newPlayers, log:newLog,
+    phase:'dawn', dawnKilled:killed.name,
+    killTarget:null, killTargetName:null, killVotes:{}, nightDone:{},
+    tokenSubmissions:{}, round:state.round+1
+  });
+}
+
+// --- DAWN ---
+function renderDawn(state){
+  el('g-phase-dawn').style.display='block';
+  el('g-dawn-desc').textContent=`${state.dawnKilled||'Someone'} was found dead this morning. Their role remains unknown.`;
+  el('g-next-round-num').textContent=state.round;
+  prophPeeked=false;
+}
+
+window.startNewRound=async function(){
+  await updateDoc(doc(db,'rooms',roomCode),{ phase:'ritual', sacrificeResult:null, nominatedId:null, nominatedName:null, votes:{}, ritualTotal:null });
+};
+
+// --- END ---
+function renderEnd(state){
+  show('s-end');
+  if(state.finalWinner==='priest'){
+    el('end-emoji').textContent='✨';
+    el('end-title').textContent='The Priests prevail!';
+    el('end-desc').textContent='The ritual was completed. The god is appeased and the faith is preserved.';
+  } else {
+    el('end-emoji').textContent='😈';
+    el('end-title').textContent='The Heretics win!';
+    el('end-desc').textContent='The heretics have become the majority. The church falls to darkness.';
+  }
+  const er=el('end-roles'); er.innerHTML='';
+  state.players.forEach(p=>{
+    const info=roleInfo[state.roles?.[p.id]||'priest'];
+    const div=document.createElement('div');
+    div.className='player-row'+(p.alive?'':' eliminated');
+    div.innerHTML=`<div class="avatar">${info.emoji}</div><span style="flex:1;font-size:15px">${p.name}</span><span class="badge ${info.cls}">${info.name}</span>${!p.alive?'<span style="font-size:12px;color:#7870a0">eliminated</span>':''}`;
+    er.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>

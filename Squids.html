@@ -89,7 +89,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <label style="font-size:13px;color:#7870a0">Your name</label>
     <input type="text" id="host-name" placeholder="Enter your name" maxlength="20"/>
     <label style="font-size:13px;color:#7870a0">Room code (4 letters, or leave blank for random)</label>
-    <input type="text" id="host-code" placeholder="e.g. HOLY" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px"/>
+    <input type="text" id="host-code" placeholder="e.g. FIJI" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px"/>
     <label style="font-size:13px;color:#7870a0">Number of squids</label>
     <select id="heretic-count">
       <option value="1">1 squid</option>
@@ -144,7 +144,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <p style="font-size:12px;color:#7870a0;margin-top:.25rem" id="settings-saved-msg"></p>
   </div>
   <div class="card">
-    <h2>💬 Pre-game GroupMe</h2>
+    <h2>💬 Cruisin Chubbies</h2>
     <div class="chat-box" id="lobby-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')sendLobbyChat()"/>
@@ -211,7 +211,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card" id="panel-ritual" style="display:none">
     <span class="phase-label phase-ritual">🍺 Tradition Phase</span>
     <h2>How many beers are you drinking?</h2>
-    <p style="font-size:13px;margin-bottom:1rem">The chapter must collectively drink exactly <strong style="color:#a89fff">21 beers</strong> to complete the tradition. Discuss, then each brother secretly submits their count. If you're not drinking, put 0.</p>
+    <p style="font-size:13px;margin-bottom:1rem">The chapter tradition: collectively drink exactly <strong style="color:#a89fff">21 beers</strong>. 21 gets the chapter to the perfect level of drunk — not too sober, not too fucked up. That's the sweet spot. Discuss how many each brother is drinking, then secretly submit. Put 0 if you're not drinking.</p>
     <div id="ritual-input-area">
       <label style="font-size:13px;color:#7870a0">Your beers:</label>
       <div class="token-display" id="ritual-val">5</div>
@@ -306,7 +306,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 
   <!-- GAME CHAT -->
   <div class="card">
-    <h2>💬 GroupMe</h2>
+    <h2>💬 Cruisin Chubbies</h2>
     <div class="chat-box" id="main-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('main')"/>
@@ -316,7 +316,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 
   <!-- HERETIC CHAT -->
   <div class="card" id="heretic-chat-card" style="display:none">
-    <h2 style="color:#e8805a">🦑 Squid chat</h2>
+    <h2 style="color:#e8805a">🦑 Bouse Chat</h2>
     <div class="chat-box" id="heretic-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('heretic')"/>
@@ -325,7 +325,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   </div>
 
   <div class="card" style="margin-top:.5rem">
-    <h2>The Mega</h2>
+    <h2>FIJI Lore</h2>
     <div class="log" id="g-log"></div>
   </div>
 </div>
@@ -861,7 +861,7 @@ function renderHostControls(state,alive){
       </div>`;
     }
     c.innerHTML=html;
-    addBtn(testMode?'Tally with slider total':'▶ Tally ritual now',()=>{
+    addBtn(testMode?'Tally with slider total':'▶ Tally beers now',()=>{
       const total=testMode?parseInt(el('host-total-slider').value):currentTotal;
       hostTallyRitualWithTotal(state,alive,total);
     });
@@ -888,7 +888,7 @@ function renderHostControls(state,alive){
     const hd=state.killTarget!=null;
     const prophetAlive=alive.find(p=>state.roles[p.id]==='prophet');
     const pd=!prophetAlive||(state.nightDone||{}).prophet;
-    c.innerHTML=`<p style="font-size:13px;margin-bottom:.75rem">Heretics: ${hd?'✓':'waiting…'} &nbsp; Prophet: ${pd?'✓':'waiting…'}</p>`;
+    c.innerHTML=`<p style="font-size:13px;margin-bottom:.75rem">Squids: ${hd?'✓ target chosen':'waiting…'} &nbsp; Risk Manager: ${pd?'✓ done':'waiting…'}</p>`;
     addBtn('▶ End night & debrief',()=>hostResolveNight(state));
   }
   else if(phase==='dawn'){
@@ -898,7 +898,7 @@ function renderHostControls(state,alive){
 
 // ── HOST ACTIONS ──────────────────────────────────────────────
 async function hostTallyRitualWithTotal(state,alive,total){
-  const newLog=[...(state.log||[]),`Round ${state.round}: The congregation offered ${total} tokens.`];
+  const newLog=[...(state.log||[]),`Round ${state.round}: The chapter put in ${total} beers total.`];
   if(total===21){
     await db_update({status:'ended',finalWinner:'priest',finalTotal:total,log:newLog});
   } else {
@@ -913,7 +913,7 @@ async function hostProceedToSacrifice(state){
 }
 
 async function hostSkipToNight(state){
-  const newLog=[...(state.log||[]),`Round ${state.round}: No sacrifice — congregation moves to night.`];
+  const newLog=[...(state.log||[]),`Round ${state.round}: No one dropped — the night begins.`];
   await db_update({phase:'night',killTarget:null,killTargetName:null,nightDone:{},log:newLog});
 }
 
@@ -927,10 +927,10 @@ async function hostTallyVotes(state,alive){
   let result;
   if(yes>no){
     newPlayers=newPlayers.map(p=>p.id===state.nominatedId?{...p,alive:false}:p);
-    newLog.push(`Round ${state.round}: ${nominated.name} was sacrificed (${yes}–${no}). Role unknown. Gone.`);
+    newLog.push(`Round ${state.round}: ${nominated.name} was dropped (${yes}–${no}). Role unknown.`);
     result={eliminated:true,name:nominated.name,id:state.nominatedId,yes,no};
   } else {
-    newLog.push(`Round ${state.round}: Vote to sacrifice ${nominated.name} failed (${yes}–${no}).`);
+    newLog.push(`Round ${state.round}: Vote to drop ${nominated.name} failed (${yes}–${no}). They stay.`);
     result={eliminated:false,name:nominated.name,id:state.nominatedId,yes,no};
   }
   await db_update({players:newPlayers,sacrificeResult:result,log:newLog});
@@ -1029,7 +1029,7 @@ function renderRitual(state,alive,iAmAlive){
   if(mySubmitted||!iAmAlive){
     el('ritual-input-area').style.display='none';
     el('ritual-submitted-msg').style.display='block';
-    el('ritual-progress').textContent=`${Object.keys(state.tokenSubmissions||{}).length} of ${alive.length} submitted`;
+    el('ritual-progress').textContent=`${Object.keys(state.tokenSubmissions||{}).length} of ${alive.length} brothers submitted`;
   } else {
     el('ritual-input-area').style.display='block';
     el('ritual-submitted-msg').style.display='none';
@@ -1045,9 +1045,9 @@ async function submitTokens(){
 function renderRitualResult(state){
   el('panel-ritual-result').style.display='block';
   const total=state.ritualTotal||0;
-  el('rr-emoji').textContent=total<21?'💔':'🔥';
-  el('rr-title').textContent=total<21?`Only ${total} tokens — the god hungers.`:`${total} tokens — too many, the god recoils.`;
-  el('rr-desc').textContent='The tradition has failed. The squids are reporting us to nationals. Someone must be dropped.';
+  el('rr-emoji').textContent=total<21?'😤':'🤮';
+  el('rr-title').textContent=total<21?`NOT ENOUGH BEERS — too sober! (${total}/21)`:`YOU ARE TOO FUCKED UP (${total}/21)`;
+  el('rr-desc').textContent='The tradition failed. The squids are reporting us to nationals. Someone gets dropped.';
 }
 
 // ── SACRIFICE ─────────────────────────────────────────────────
@@ -1073,7 +1073,7 @@ function renderSacrifice(state,alive,iAmAlive){
     const currentPopeId=getCurrentPope(state);
     const amPope=myId===currentPopeId;
     const popeName=state.players.find(p=>p.id===currentPopeId)?.name||'Unknown';
-    el('pope-indicator').textContent=amPope?"👑 You are this round's Pope — nominate someone.":"👑 This round's Pope: "+popeName;
+    el('pope-indicator').textContent=amPope?"👑 You have the floor this round — nominate someone to drop.":"👑 "+popeName+" has the floor this round.";
     el('skip-wrap').style.display=isHost?'block':'none';
     const nl=el('nominate-list');nl.innerHTML='';
     alive.filter(p=>p.id!==myId).forEach(p=>{
@@ -1099,7 +1099,7 @@ function renderSacrifice(state,alive,iAmAlive){
 }
 
 async function nominatePlayer(pid,pname,state){
-  const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} (Pope) nominated ${pname} for sacrifice.`];
+  const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} has the floor — nominates ${pname} to be dropped.`];
   await db_update({nominatedId:pid,nominatedName:pname,votes:{},log:newLog});
 };
 
@@ -1153,7 +1153,7 @@ function renderProphetNight(state,alive){
       prophPeeked=true;
       const tokens=(state.tokenSubmissions||{})[p.id];
       el('prophet-peek-name').textContent='Breathalyzer results for '+p.name+':';
-      el('prophet-peek-tokens').textContent=tokens!=null?tokens:'(not submitted)';
+      el('prophet-peek-tokens').textContent=tokens!=null?tokens:'(none submitted)';
       el('prophet-result').style.display='block';
       el('prophet-list').style.display='none';
       db_update({'nightDone.prophet':true});

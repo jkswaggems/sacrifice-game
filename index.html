@@ -86,6 +86,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>Create a game</h2>
     <label style="font-size:13px;color:#7870a0">Your name</label>
     <input type="text" id="host-name" placeholder="Enter your name" maxlength="20"/>
+    <label style="font-size:13px;color:#7870a0">Room code (4 letters, or leave blank for random)</label>
+    <input type="text" id="host-code" placeholder="e.g. HOLY" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px"/>
     <label style="font-size:13px;color:#7870a0">Number of heretics</label>
     <select id="heretic-count">
       <option value="1">1 heretic</option>
@@ -122,6 +124,22 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card">
     <h2>The congregation (<span id="lobby-count">0</span>/12)</h2>
     <div id="lobby-players" style="margin-bottom:.5rem"></div>
+  </div>
+  <div class="card" id="host-settings-card" style="display:none">
+    <h2>⚙️ Game settings</h2>
+    <label style="font-size:13px;color:#7870a0">Number of heretics</label>
+    <select id="lobby-heretic-count" onchange="updateLobbySettings()">
+      <option value="1">1 heretic</option>
+      <option value="2" selected>2 heretics</option>
+      <option value="3">3 heretics</option>
+    </select>
+    <label style="font-size:13px;color:#7870a0">Number of prophets</label>
+    <select id="lobby-prophet-count" onchange="updateLobbySettings()">
+      <option value="1" selected>1 prophet</option>
+      <option value="2">2 prophets</option>
+      <option value="3">3 prophets</option>
+    </select>
+    <p style="font-size:12px;color:#7870a0;margin-top:.25rem" id="settings-saved-msg"></p>
   </div>
   <div class="card">
     <h2>💬 Lobby chat</h2>
@@ -412,7 +430,13 @@ window.startTestMode=function(){
 window.createRoom=async function(){
   const name=el('host-name').value.trim();
   if(!name){el('err-create').textContent='Please enter your name.';return;}
-  myName=name;isHost=true;roomCode=genCode();
+  const customCode=el('host-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  myName=name;isHost=true;roomCode=customCode||genCode();
+  // Check if room code already exists
+  const existingSnap=await getDoc(doc(db,'rooms',roomCode));
+  if(existingSnap.exists()&&existingSnap.data().status!=='ended'){
+    el('err-create').textContent='Room code "'+roomCode+'" is already in use. Try another.';return;
+  }
   const hc=parseInt(el('heretic-count').value);
   const pc=parseInt(el('prophet-count').value);
   await setDoc(doc(db,'rooms',roomCode),freshRoomState(roomCode,myId,myName,hc,pc));
@@ -472,6 +496,11 @@ function renderLobby(state){
   });
   if(isHost){
     el('status-msg').textContent=state.players.length+' player(s) in lobby. Start whenever ready.';
+    el('host-settings-card').style.display='block';
+    el('host-start-area').style.display='block';
+    // Sync selects to current state
+    if(state.hereticCount) el('lobby-heretic-count').value=state.hereticCount;
+    if(state.prophetCount) el('lobby-prophet-count').value=state.prophetCount;
   }
   renderLobbyChat(state.lobbyChat||[]);
 }
@@ -685,6 +714,16 @@ window.sendLobbyChat=async function(){
   }
 };
 
+// ── LOBBY SETTINGS ────────────────────────────────────────────
+window.updateLobbySettings=async function(){
+  const hc=parseInt(el('lobby-heretic-count').value);
+  const pc=parseInt(el('lobby-prophet-count').value);
+  if(testMode){ gameState.hereticCount=hc; gameState.prophetCount=pc; return; }
+  await updateDoc(doc(db,'rooms',roomCode),{hereticCount:hc,prophetCount:pc});
+  el('settings-saved-msg').textContent='✓ Saved';
+  setTimeout(()=>{ if(el('settings-saved-msg')) el('settings-saved-msg').textContent=''; },1500);
+};
+
 // ── HOST CONTROLS ─────────────────────────────────────────────
 function renderHostControls(state,alive){
   el('host-control-panel').style.display='block';
@@ -789,6 +828,9 @@ async function hostTallyVotes(state,alive){
     if(checkHereticWin(ua,state.roles)){
       await db_update({status:'ended',finalWinner:'heretic',finalReason:'majority'});return;
     }
+    if(checkPriestWin(ua,state.roles)){
+      await db_update({players:newPlayers,log:newLog,status:'ended',finalWinner:'priest',finalReason:'eliminated'});return;
+    }
   }
 }
 
@@ -810,6 +852,9 @@ async function hostResolveNight(state){
   if(checkHereticWin(ua,state.roles)){
     await db_update({players:newPlayers,log:newLog,status:'ended',finalWinner:'heretic',finalReason:'majority'});return;
   }
+  if(checkPriestWin(ua,state.roles)){
+    await db_update({players:newPlayers,log:newLog,status:'ended',finalWinner:'priest',finalReason:'eliminated'});return;
+  }
   await db_update({players:newPlayers,log:newLog,phase:'dawn',dawnKilled:killName,killTarget:null,killTargetName:null,tokenSubmissions:{},round:state.round+1,nightDone:{}});
 }
 
@@ -821,6 +866,12 @@ function checkHereticWin(alivePlayers,roles){
   const heretics=alivePlayers.filter(p=>roles[p.id]==='heretic').length;
   const others=alivePlayers.filter(p=>roles[p.id]!=='heretic').length;
   return heretics>=others;
+}
+
+function checkPriestWin(alivePlayers,roles){
+  // Priests also win if all heretics are eliminated
+  const heretics=alivePlayers.filter(p=>roles[p.id]==='heretic').length;
+  return heretics===0;
 }
 
 // ── POPE ORDER ────────────────────────────────────────────────
@@ -1002,7 +1053,7 @@ function renderEnd(state){
   show('s-end');
   if(state.finalWinner==='priest'){
     el('end-emoji').textContent='✨';el('end-title').textContent='The Priests prevail!';
-    el('end-desc').textContent='The ritual is complete. The god is appeased.';
+    el('end-desc').textContent=state.finalReason==='eliminated'?'All heretics have been cast out. The church is purified.':'The ritual is complete. The god is appeased.';
   } else {
     el('end-emoji').textContent='😈';el('end-title').textContent='The Heretics win!';
     el('end-desc').textContent='The heretics matched the congregation. The church falls to darkness.';

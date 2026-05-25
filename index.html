@@ -123,6 +123,14 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>The congregation (<span id="lobby-count">0</span>/12)</h2>
     <div id="lobby-players" style="margin-bottom:.5rem"></div>
   </div>
+  <div class="card">
+    <h2>💬 Lobby chat</h2>
+    <div class="chat-box" id="lobby-chat-box"></div>
+    <div class="chat-input-row">
+      <input type="text" id="lobby-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')sendLobbyChat()"/>
+      <button class="btn-primary" onclick="sendLobbyChat()">Send</button>
+    </div>
+  </div>
   <div id="host-start-area" style="display:none;margin-bottom:1rem">
     <button class="btn-primary" id="start-btn" onclick="startGame()">Begin the ritual →</button>
     <div style="font-size:13px;color:#7870a0;margin-top:.5rem" id="status-msg"></div>
@@ -335,14 +343,9 @@ let oathDoneLocal=false, roleConfirmedLocal=false;
 // Show test button only for hosts (before room is created, show on home screen)
 // We show it after create — see createRoom()
 
-const BAD_WORDS=['fuck','shit','bitch','ass','damn','crap','piss','cock','dick','pussy','bastard','cunt','whore','slut'];
+// No word filter
 function censorMsg(text){
-  let out=text;
-  BAD_WORDS.forEach(w=>{
-    const re=new RegExp(w,'gi');
-    out=out.replace(re,'*'.repeat(w.length));
-  });
-  return out;
+  return text; // No censorship
 }
 
 const roleInfo={
@@ -369,7 +372,7 @@ function freshRoomState(code,hostId,hostName,hc,pc){
     popeOrder:[],popeIndex:0,
     sacrificeResult:null,ritualTotal:null,dawnKilled:null,
     mainChat:[],hereticChat:[],
-    log:[],createdAt:serverTimestamp()
+    log:[],lobbyChat:[],createdAt:serverTimestamp()
   };
 }
 
@@ -470,6 +473,7 @@ function renderLobby(state){
   if(isHost){
     el('status-msg').textContent=state.players.length+' player(s) in lobby. Start whenever ready.';
   }
+  renderLobbyChat(state.lobbyChat||[]);
 }
 
 window.startGame=async function(){
@@ -649,6 +653,35 @@ window.sendChat=async function(type){
     renderGame(gameState);
   } else {
     await updateDoc(doc(db,'rooms',roomCode),{[field]:arrayUnion(msg)});
+  }
+};
+
+// ── LOBBY CHAT ────────────────────────────────────────────────
+function renderLobbyChat(messages){
+  const box=el('lobby-chat-box');
+  const wasAtBottom=box.scrollHeight-box.scrollTop<=box.clientHeight+40;
+  box.innerHTML='';
+  (messages||[]).forEach(m=>{
+    const div=document.createElement('div');
+    div.className='chat-msg';
+    div.innerHTML=`<span class="who">${m.name}:</span>${m.text}`;
+    box.appendChild(div);
+  });
+  if(wasAtBottom) box.scrollTop=box.scrollHeight;
+}
+
+window.sendLobbyChat=async function(){
+  const input=el('lobby-chat-input');
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';
+  const msg={id:myId,name:myName,text,ts:Date.now()};
+  if(testMode){
+    if(!gameState.lobbyChat) gameState.lobbyChat=[];
+    gameState.lobbyChat.push(msg);
+    renderLobbyChat(gameState.lobbyChat);
+  } else {
+    await updateDoc(doc(db,'rooms',roomCode),{lobbyChat:arrayUnion(msg)});
   }
 };
 
@@ -1001,7 +1034,7 @@ window.hostPlayAgain=async function(){
     confirmedPlayers:[],tokenSubmissions:{},votes:{},
     nominatedId:null,nominatedName:null,killTarget:null,killTargetName:null,
     nightDone:{},sacrificeResult:null,ritualTotal:null,dawnKilled:null,
-    finalWinner:null,finalReason:null,mainChat:[],hereticChat:[],log:[]
+    finalWinner:null,finalReason:null,mainChat:[],hereticChat:[],lobbyChat:[],log:[]
   });
   oathDoneLocal=false;roleConfirmedLocal=false;prophPeeked=false;
 };

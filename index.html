@@ -483,7 +483,7 @@ function route(state){
 
 // ── LOBBY ─────────────────────────────────────────────────────
 function renderLobby(state){
-  // Reset local state so players go through oath+reveal again on new game
+  // Reset local flags so every device goes through oath+reveal fresh each game
   oathDoneLocal=false;roleConfirmedLocal=false;prophPeeked=false;
   show('s-lobby');
   el('lobby-count').textContent=state.players.length;
@@ -498,9 +498,14 @@ function renderLobby(state){
     el('status-msg').textContent=state.players.length+' player(s) in lobby. Start whenever ready.';
     el('host-settings-card').style.display='block';
     el('host-start-area').style.display='block';
+    el('waiting-msg').style.display='none';
     // Sync selects to current state
     if(state.hereticCount) el('lobby-heretic-count').value=state.hereticCount;
     if(state.prophetCount) el('lobby-prophet-count').value=state.prophetCount;
+  } else {
+    el('host-settings-card').style.display='none';
+    el('host-start-area').style.display='none';
+    el('waiting-msg').style.display='block';
   }
   renderLobbyChat(state.lobbyChat||[]);
 }
@@ -536,8 +541,9 @@ function buildPopeOrder(players){
 // ── OATH & REVEAL (fixed loop) ────────────────────────────────
 function routeOath(state){
   myRole=state.roles[myId]||myRole;
+  // If no role assigned yet (roles not set), just wait
+  if(!state.roles||!state.roles[myId]){ show('s-lobby'); return; }
   if(roleConfirmedLocal){
-    // Already confirmed — show waiting or go to game if playing
     if(state.status==='playing') routePlaying(state);
     else showWaitingForOthers(state);
     return;
@@ -1068,9 +1074,13 @@ function renderEnd(state){
   });
   if(isHost){
     el('end-host-btns').style.display='block';
+    el('end-waiting-msg').style.display='none';
   } else {
+    el('end-host-btns').style.display='none';
     el('end-waiting-msg').textContent='Waiting for the host to start the next game…';
     el('end-waiting-msg').style.display='block';
+    // Pre-reset local flags so non-hosts are ready when lobby reappears
+    oathDoneLocal=false;roleConfirmedLocal=false;prophPeeked=false;
   }
 }
 

@@ -75,7 +75,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 <!-- HOME -->
 <div id="s-home" class="screen active">
   <div style="text-align:right;margin-bottom:.5rem">
-    <button id="test-btn" style="background:#2a1a00;color:#ffb347;border:1px solid #5a3a00;font-size:12px;padding:6px 12px;border-radius:8px" onclick="startTestMode()">🧪 Test run</button>
+    <button id="test-btn" style="background:#2a1a00;color:#ffb347;border:1px solid #5a3a00;font-size:12px;padding:6px 12px;border-radius:8px">🧪 Test run</button>
   </div>
   <div style="text-align:center;padding:1rem 0 1rem">
     <span style="font-size:48px">🔥</span>
@@ -100,7 +100,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <option value="2">2 risk managers</option>
       <option value="3">3 risk managers</option>
     </select>
-    <button class="btn-primary" onclick="createRoom()">Create room →</button>
+    <button class="btn-primary" id="btn-create-room">Create room →</button>
     <div class="error" id="err-create"></div>
   </div>
   <div class="card">
@@ -109,7 +109,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <input type="text" id="join-name" placeholder="Enter your name" maxlength="20"/>
     <label style="font-size:13px;color:#7870a0">Room code</label>
     <input type="text" id="join-code" placeholder="e.g. ABCD" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px"/>
-    <button class="btn-primary" onclick="joinRoom()">Join room →</button>
+    <button class="btn-primary" id="btn-join-room">Join room →</button>
     <div class="error" id="err-join"></div>
   </div>
 </div>
@@ -146,7 +146,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <div class="chat-box" id="lobby-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')sendLobbyChat()"/>
-      <button class="btn-primary" onclick="sendLobbyChat()">Send</button>
+      <button class="btn-primary" id="btn-lobby-chat">Send</button>
     </div>
   </div>
   <div id="host-start-area" style="display:none;margin-bottom:1rem">
@@ -165,7 +165,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card" style="text-align:center;padding:2rem 1.25rem">
     <div class="oath-box"><span id="oath-text-content"></span></div>
     <p style="font-size:13px;margin:.75rem 0">Speak, then tap.</p>
-    <button class="btn-primary" id="oath-btn" onclick="oathDone()">I have spoken →</button>
+    <button class="btn-primary" id="oath-btn">I have spoken →</button>
   </div>
 </div>
 
@@ -179,7 +179,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <p style="font-size:14px;color:#a09ac0;margin-bottom:.75rem" id="reveal-role-desc"></p>
     <p style="font-size:13px;color:#e8805a;font-weight:500;margin-bottom:1.25rem" id="reveal-partner"></p>
     <p style="font-size:12px;color:#7870a0;margin-bottom:1rem">You have 10 beers to allocate each round (0–10).</p>
-    <button class="btn-primary" onclick="confirmRole()">Let's get it →</button>
+    <button class="btn-primary" id="btn-confirm-role">Let's get it →</button>
   </div>
 </div>
 
@@ -215,7 +215,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <div class="token-display" id="ritual-val">5</div>
       <input type="range" min="0" max="10" value="5" id="ritual-slider" oninput="document.getElementById('ritual-val').textContent=this.value"/>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:#7870a0;margin-bottom:1rem"><span>0</span><span>10</span></div>
-      <button class="btn-primary" style="width:100%" onclick="submitTokens()">Submit →</button>
+      <button class="btn-primary" style="width:100%" id="btn-submit-tokens">Submit →</button>
     </div>
     <div id="ritual-submitted-msg" style="display:none;text-align:center;padding:.5rem 0">
       <p style="font-size:14px;color:#9a8fff;margin-bottom:.5rem">✓ Beers submitted. Waiting for the rest of the house…</p>
@@ -240,15 +240,15 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <p style="font-size:13px;margin-bottom:.75rem">Whoever has the floor nominates who to drop. Everyone else can discuss but only they can nominate.</p>
       <div id="nominate-list"></div>
       <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid #1c1830" id="skip-wrap">
-        <button style="font-size:13px" onclick="hostSkipToNight(gameState)">Skip — go straight to night</button>
+        <button style="font-size:13px" id="btn-skip-night">Skip — go straight to night</button>
       </div>
     </div>
     <div id="sac-vote" style="display:none">
       <h2>Vote: drop <span id="nom-name" style="color:#e8805a"></span>?</h2>
       <p style="font-size:13px;margin-bottom:.75rem">Their role will NOT be revealed. Majority rules. Choose wisely.</p>
       <div id="sac-vote-buttons" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-danger" onclick="castVote('yes')">Yes — drop them</button>
-        <button class="btn-success" onclick="castVote('no')">No — keep them</button>
+        <button class="btn-danger" id="btn-vote-yes">Yes — drop them</button>
+        <button class="btn-success" id="btn-vote-no">No — keep them</button>
       </div>
       <div id="sac-vote-cast" style="display:none;margin-top:.5rem">
         <p style="font-size:13px;color:#9a8fff">✓ Voted. Waiting for host to tally…</p>
@@ -308,7 +308,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <div class="chat-box" id="main-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('main')"/>
-      <button class="btn-primary" onclick="sendChat('main')">Send</button>
+      <button class="btn-primary" id="btn-send-main-chat">Send</button>
     </div>
   </div>
 
@@ -318,7 +318,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <div class="chat-box" id="heretic-chat-box"></div>
     <div class="chat-input-row">
       <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('heretic')"/>
-      <button class="btn-danger" onclick="sendChat('heretic')">Send</button>
+      <button class="btn-danger" id="btn-send-heretic-chat">Send</button>
     </div>
   </div>
 
@@ -337,7 +337,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2 style="text-align:left;margin-bottom:.5rem">All roles revealed</h2>
     <div id="end-roles" style="text-align:left;margin-bottom:1.5rem"></div>
     <div id="end-host-btns" style="display:none">
-      <button class="btn-primary" style="width:100%;margin-bottom:.5rem" onclick="hostPlayAgain()">Run it back — same lobby →</button>
+      <button class="btn-primary" style="width:100%;margin-bottom:.5rem" id="btn-play-again">Run it back — same lobby →</button>
     </div>
     <p style="font-size:13px;color:#7870a0" id="end-waiting-msg" style="display:none"></p>
     <button style="width:100%;margin-top:.5rem;font-size:13px" onclick="location.reload()">Leave</button>
@@ -444,6 +444,7 @@ function assignCosmeticNames(players, roles){
 
 
 let myId=localStorage.getItem('sacrificeId')||Math.random().toString(36).slice(2,10);
+window.gameState=null;
 localStorage.setItem('sacrificeId',myId);
 let myName='',roomCode='',isHost=false,myRole='';
 let gameState=null,unsubscribe=null,testMode=false,prophPeeked=false;
@@ -499,7 +500,7 @@ window.startTestMode=function(){
   ];
   const roles={'test-host':'prophet',p2:'heretic',p3:'heretic',p4:'priest',p5:'priest',p6:'priest'};
   const popeOrder=['test-host','p2','p3','p4','p5','p6'].sort(()=>Math.random()-.5);
-  gameState={
+  gameState=window.gameState={
     code:'TEST',status:'playing',host:'test-host',hereticCount:2,prophetCount:1,
     players:fakePlayers,roles,round:1,phase:'ritual',
     confirmedPlayers:fakePlayers.map(p=>p.id),
@@ -562,7 +563,7 @@ function listenToRoom(){
   if(unsubscribe)unsubscribe();
   unsubscribe=onSnapshot(doc(db,'rooms',roomCode),snap=>{
     if(!snap.exists())return;
-    gameState=snap.data();
+    gameState=snap.data();window.gameState=gameState;
     route(gameState);
   });
 }
@@ -1218,6 +1219,27 @@ window.hostPlayAgain=async function(){
 
 // When non-host sees lobby again after game end, reset local flags
 // Handled by route() -> renderLobby which shows lobby screen cleanly
+
+// ── ATTACH EVENT LISTENERS (module-safe) ──────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  function attach(id, fn){
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('click', fn);
+  }
+  attach('test-btn',          ()=> window.startTestMode && window.startTestMode());
+  attach('btn-create-room',   ()=> window.createRoom && window.createRoom());
+  attach('btn-join-room',     ()=> window.joinRoom && window.joinRoom());
+  attach('btn-lobby-chat',    ()=> window.sendLobbyChat && window.sendLobbyChat());
+  attach('oath-btn',          ()=> window.oathDone && window.oathDone());
+  attach('btn-confirm-role',  ()=> window.confirmRole && window.confirmRole());
+  attach('btn-submit-tokens', ()=> window.submitTokens && window.submitTokens());
+  attach('btn-skip-night',    ()=> window.hostSkipToNight && window.hostSkipToNight(window.gameState||gameState));
+  attach('btn-vote-yes',      ()=> window.castVote && window.castVote('yes'));
+  attach('btn-vote-no',       ()=> window.castVote && window.castVote('no'));
+  attach('btn-send-main-chat',    ()=> window.sendChat && window.sendChat('main'));
+  attach('btn-send-heretic-chat', ()=> window.sendChat && window.sendChat('heretic'));
+  attach('btn-play-again',    ()=> window.hostPlayAgain && window.hostPlayAgain());
+});
 </script>
 </body>
 </html>

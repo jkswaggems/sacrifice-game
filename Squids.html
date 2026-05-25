@@ -128,13 +128,13 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card" id="host-settings-card" style="display:none">
     <h2>⚙️ House settings</h2>
     <label style="font-size:13px;color:#7870a0">Number of squids</label>
-    <select id="lobby-heretic-count" onchange="updateLobbySettings()">
+    <select id="lobby-heretic-count" onchange="window.updateLobbySettings&&window.updateLobbySettings()">
       <option value="1">1 squid</option>
       <option value="2" selected>2 squids</option>
       <option value="3">3 squids</option>
     </select>
     <label style="font-size:13px;color:#7870a0">Number of risk managers</label>
-    <select id="lobby-prophet-count" onchange="updateLobbySettings()">
+    <select id="lobby-prophet-count" onchange="window.updateLobbySettings&&window.updateLobbySettings()">
       <option value="1" selected>1 risk manager</option>
       <option value="2">2 risk managers</option>
       <option value="3">3 risk managers</option>
@@ -145,7 +145,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>💬 Pre-game GroupMe</h2>
     <div class="chat-box" id="lobby-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')sendLobbyChat()"/>
+      <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendLobbyChat()"/>
       <button class="btn-primary" id="btn-lobby-chat">Send</button>
     </div>
   </div>
@@ -307,7 +307,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>💬 GroupMe</h2>
     <div class="chat-box" id="main-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('main')"/>
+      <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendChat('main')"/>
       <button class="btn-primary" id="btn-send-main-chat">Send</button>
     </div>
   </div>
@@ -317,7 +317,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2 style="color:#e8805a">🦑 Squid chat</h2>
     <div class="chat-box" id="heretic-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('heretic')"/>
+      <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendChat('heretic')"/>
       <button class="btn-danger" id="btn-send-heretic-chat">Send</button>
     </div>
   </div>
@@ -444,7 +444,7 @@ function assignCosmeticNames(players, roles){
 
 
 let myId=localStorage.getItem('sacrificeId')||Math.random().toString(36).slice(2,10);
-window.gameState=null;
+
 localStorage.setItem('sacrificeId',myId);
 let myName='',roomCode='',isHost=false,myRole='';
 let gameState=null,unsubscribe=null,testMode=false,prophPeeked=false;
@@ -500,7 +500,7 @@ window.startTestMode=function(){
   ];
   const roles={'test-host':'prophet',p2:'heretic',p3:'heretic',p4:'priest',p5:'priest',p6:'priest'};
   const popeOrder=['test-host','p2','p3','p4','p5','p6'].sort(()=>Math.random()-.5);
-  gameState=window.gameState={
+  gameState={
     code:'TEST',status:'playing',host:'test-host',hereticCount:2,prophetCount:1,
     players:fakePlayers,roles,round:1,phase:'ritual',
     confirmedPlayers:fakePlayers.map(p=>p.id),
@@ -563,7 +563,7 @@ function listenToRoom(){
   if(unsubscribe)unsubscribe();
   unsubscribe=onSnapshot(doc(db,'rooms',roomCode),snap=>{
     if(!snap.exists())return;
-    gameState=snap.data();window.gameState=gameState;
+    gameState=snap.data();
     route(gameState);
   });
 }
@@ -1220,26 +1220,25 @@ window.hostPlayAgain=async function(){
 // When non-host sees lobby again after game end, reset local flags
 // Handled by route() -> renderLobby which shows lobby screen cleanly
 
-// ── ATTACH EVENT LISTENERS (module-safe) ──────────────────────
-document.addEventListener('DOMContentLoaded', function(){
-  function attach(id, fn){
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('click', fn);
-  }
-  attach('test-btn',          ()=> window.startTestMode && window.startTestMode());
-  attach('btn-create-room',   ()=> window.createRoom && window.createRoom());
-  attach('btn-join-room',     ()=> window.joinRoom && window.joinRoom());
-  attach('btn-lobby-chat',    ()=> window.sendLobbyChat && window.sendLobbyChat());
-  attach('oath-btn',          ()=> window.oathDone && window.oathDone());
-  attach('btn-confirm-role',  ()=> window.confirmRole && window.confirmRole());
-  attach('btn-submit-tokens', ()=> window.submitTokens && window.submitTokens());
-  attach('btn-skip-night',    ()=> window.hostSkipToNight && window.hostSkipToNight(window.gameState||gameState));
-  attach('btn-vote-yes',      ()=> window.castVote && window.castVote('yes'));
-  attach('btn-vote-no',       ()=> window.castVote && window.castVote('no'));
-  attach('btn-send-main-chat',    ()=> window.sendChat && window.sendChat('main'));
-  attach('btn-send-heretic-chat', ()=> window.sendChat && window.sendChat('heretic'));
-  attach('btn-play-again',    ()=> window.hostPlayAgain && window.hostPlayAgain());
-});
+// ── ATTACH EVENT LISTENERS ───────────────────────────────────
+// Module scripts run after DOM is ready, so we can attach directly
+function attachBtn(id, fn){
+  const b = document.getElementById(id);
+  if(b) b.addEventListener('click', fn);
+}
+attachBtn('test-btn',              ()=> startTestMode());
+attachBtn('btn-create-room',       ()=> createRoom());
+attachBtn('btn-join-room',         ()=> joinRoom());
+attachBtn('btn-lobby-chat',        ()=> sendLobbyChat());
+attachBtn('oath-btn',              ()=> oathDone());
+attachBtn('btn-confirm-role',      ()=> confirmRole());
+attachBtn('btn-submit-tokens',     ()=> submitTokens());
+attachBtn('btn-skip-night',        ()=> hostSkipToNight(gameState));
+attachBtn('btn-vote-yes',          ()=> castVote('yes'));
+attachBtn('btn-vote-no',           ()=> castVote('no'));
+attachBtn('btn-send-main-chat',    ()=> sendChat('main'));
+attachBtn('btn-send-heretic-chat', ()=> sendChat('heretic'));
+attachBtn('btn-play-again',        ()=> hostPlayAgain());
 </script>
 </body>
 </html>

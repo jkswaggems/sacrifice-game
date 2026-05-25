@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Drop the Squid</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0812;color:#f0eeff;min-height:100vh;padding:1rem}
@@ -75,7 +77,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 <!-- HOME -->
 <div id="s-home" class="screen active">
   <div style="text-align:right;margin-bottom:.5rem">
-    <button id="test-btn" style="background:#2a1a00;color:#ffb347;border:1px solid #5a3a00;font-size:12px;padding:6px 12px;border-radius:8px">🧪 Test run</button>
+    <button id="test-btn" onclick="startTestMode()" style="background:#2a1a00;color:#ffb347;border:1px solid #5a3a00;font-size:12px;padding:6px 12px;border-radius:8px">🧪 Test run</button>
   </div>
   <div style="text-align:center;padding:1rem 0 1rem">
     <span style="font-size:48px">🔥</span>
@@ -100,7 +102,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <option value="2">2 risk managers</option>
       <option value="3">3 risk managers</option>
     </select>
-    <button class="btn-primary" id="btn-create-room">Create room →</button>
+    <button class="btn-primary" onclick="createRoom()">Create room →</button>
     <div class="error" id="err-create"></div>
   </div>
   <div class="card">
@@ -109,7 +111,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <input type="text" id="join-name" placeholder="Enter your name" maxlength="20"/>
     <label style="font-size:13px;color:#7870a0">Room code</label>
     <input type="text" id="join-code" placeholder="e.g. ABCD" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-size:20px"/>
-    <button class="btn-primary" id="btn-join-room">Join room →</button>
+    <button class="btn-primary" onclick="joinRoom()">Join room →</button>
     <div class="error" id="err-join"></div>
   </div>
 </div>
@@ -128,13 +130,13 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card" id="host-settings-card" style="display:none">
     <h2>⚙️ House settings</h2>
     <label style="font-size:13px;color:#7870a0">Number of squids</label>
-    <select id="lobby-heretic-count" onchange="window.updateLobbySettings&&window.updateLobbySettings()">
+    <select id="lobby-heretic-count" onchange="updateLobbySettings()">
       <option value="1">1 squid</option>
       <option value="2" selected>2 squids</option>
       <option value="3">3 squids</option>
     </select>
     <label style="font-size:13px;color:#7870a0">Number of risk managers</label>
-    <select id="lobby-prophet-count" onchange="window.updateLobbySettings&&window.updateLobbySettings()">
+    <select id="lobby-prophet-count" onchange="updateLobbySettings()">
       <option value="1" selected>1 risk manager</option>
       <option value="2">2 risk managers</option>
       <option value="3">3 risk managers</option>
@@ -145,8 +147,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>💬 Pre-game GroupMe</h2>
     <div class="chat-box" id="lobby-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendLobbyChat()"/>
-      <button class="btn-primary" id="btn-lobby-chat">Send</button>
+      <input type="text" id="lobby-chat-input" placeholder="Send a message…" maxlength="200" onkeydown="if(event.key==='Enter')sendLobbyChat()"/>
+      <button class="btn-primary" onclick="sendLobbyChat()">Send</button>
     </div>
   </div>
   <div id="host-start-area" style="display:none;margin-bottom:1rem">
@@ -165,7 +167,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div class="card" style="text-align:center;padding:2rem 1.25rem">
     <div class="oath-box"><span id="oath-text-content"></span></div>
     <p style="font-size:13px;margin:.75rem 0">Speak, then tap.</p>
-    <button class="btn-primary" id="oath-btn">I have spoken →</button>
+    <button class="btn-primary" id="oath-btn" onclick="oathDone()">I have spoken →</button>
   </div>
 </div>
 
@@ -179,7 +181,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <p style="font-size:14px;color:#a09ac0;margin-bottom:.75rem" id="reveal-role-desc"></p>
     <p style="font-size:13px;color:#e8805a;font-weight:500;margin-bottom:1.25rem" id="reveal-partner"></p>
     <p style="font-size:12px;color:#7870a0;margin-bottom:1rem">You have 10 beers to allocate each round (0–10).</p>
-    <button class="btn-primary" id="btn-confirm-role">Let's get it →</button>
+    <button class="btn-primary" onclick="confirmRole()">Let's get it →</button>
   </div>
 </div>
 
@@ -215,7 +217,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <div class="token-display" id="ritual-val">5</div>
       <input type="range" min="0" max="10" value="5" id="ritual-slider" oninput="document.getElementById('ritual-val').textContent=this.value"/>
       <div style="display:flex;justify-content:space-between;font-size:12px;color:#7870a0;margin-bottom:1rem"><span>0</span><span>10</span></div>
-      <button class="btn-primary" style="width:100%" id="btn-submit-tokens">Submit →</button>
+      <button class="btn-primary" style="width:100%" onclick="submitTokens()">Submit →</button>
     </div>
     <div id="ritual-submitted-msg" style="display:none;text-align:center;padding:.5rem 0">
       <p style="font-size:14px;color:#9a8fff;margin-bottom:.5rem">✓ Beers submitted. Waiting for the rest of the house…</p>
@@ -240,15 +242,15 @@ button:disabled{opacity:.35;cursor:not-allowed}
       <p style="font-size:13px;margin-bottom:.75rem">Whoever has the floor nominates who to drop. Everyone else can discuss but only they can nominate.</p>
       <div id="nominate-list"></div>
       <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid #1c1830" id="skip-wrap">
-        <button style="font-size:13px" id="btn-skip-night">Skip — go straight to night</button>
+        <button style="font-size:13px" onclick="hostSkipToNight(gameState)">Skip — go straight to night</button>
       </div>
     </div>
     <div id="sac-vote" style="display:none">
       <h2>Vote: drop <span id="nom-name" style="color:#e8805a"></span>?</h2>
       <p style="font-size:13px;margin-bottom:.75rem">Their role will NOT be revealed. Majority rules. Choose wisely.</p>
       <div id="sac-vote-buttons" style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-danger" id="btn-vote-yes">Yes — drop them</button>
-        <button class="btn-success" id="btn-vote-no">No — keep them</button>
+        <button class="btn-danger" onclick="castVote('yes')">Yes — drop them</button>
+        <button class="btn-success" onclick="castVote('no')">No — keep them</button>
       </div>
       <div id="sac-vote-cast" style="display:none;margin-top:.5rem">
         <p style="font-size:13px;color:#9a8fff">✓ Voted. Waiting for host to tally…</p>
@@ -307,8 +309,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2>💬 GroupMe</h2>
     <div class="chat-box" id="main-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendChat('main')"/>
-      <button class="btn-primary" id="btn-send-main-chat">Send</button>
+      <input type="text" id="main-chat-input" placeholder="Say something…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('main')"/>
+      <button class="btn-primary" onclick="sendChat('main')">Send</button>
     </div>
   </div>
 
@@ -317,8 +319,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2 style="color:#e8805a">🦑 Squid chat</h2>
     <div class="chat-box" id="heretic-chat-box"></div>
     <div class="chat-input-row">
-      <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')window.sendChat('heretic')"/>
-      <button class="btn-danger" id="btn-send-heretic-chat">Send</button>
+      <input type="text" id="heretic-chat-input" placeholder="Squid talk only in here…" maxlength="200" onkeydown="if(event.key==='Enter')sendChat('heretic')"/>
+      <button class="btn-danger" onclick="sendChat('heretic')">Send</button>
     </div>
   </div>
 
@@ -337,20 +339,18 @@ button:disabled{opacity:.35;cursor:not-allowed}
     <h2 style="text-align:left;margin-bottom:.5rem">All roles revealed</h2>
     <div id="end-roles" style="text-align:left;margin-bottom:1.5rem"></div>
     <div id="end-host-btns" style="display:none">
-      <button class="btn-primary" style="width:100%;margin-bottom:.5rem" id="btn-play-again">Run it back — same lobby →</button>
+      <button class="btn-primary" style="width:100%;margin-bottom:.5rem" onclick="hostPlayAgain()">Run it back — same lobby →</button>
     </div>
     <p style="font-size:13px;color:#7870a0" id="end-waiting-msg" style="display:none"></p>
     <button style="width:100%;margin-top:.5rem;font-size:13px" onclick="location.reload()">Leave</button>
   </div>
 </div>
 
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,doc,setDoc,getDoc,updateDoc,onSnapshot,arrayUnion,serverTimestamp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script>
 
 const firebaseConfig={apiKey:"AIzaSyBalJQequQz7a-1sJCOkux2yHLkwqdtKKA",authDomain:"sacrifice-game.firebaseapp.com",projectId:"sacrifice-game",storageBucket:"sacrifice-game.firebasestorage.app",messagingSenderId:"472891316325",appId:"1:472891316325:web:23392f23e41833739c0e8c"};
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+const app=firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
 
 // ── DROP THE SQUID THEME DATA ─────────────────────────────────
 
@@ -482,12 +482,12 @@ function freshRoomState(code,hostId,hostName,hc,pc){
     popeOrder:[],popeIndex:0,
     sacrificeResult:null,ritualTotal:null,dawnKilled:null,
     mainChat:[],hereticChat:[],
-    log:[],lobbyChat:[],createdAt:serverTimestamp()
+    log:[],lobbyChat:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()
   };
 }
 
 // ── TEST MODE ─────────────────────────────────────────────────
-window.startTestMode=function(){
+function startTestMode(){
   testMode=true;isHost=true;myName='Tester';myId='test-host';roomCode='TEST';
   oathDoneLocal=true;roleConfirmedLocal=true;
   const fakePlayers=[
@@ -521,19 +521,19 @@ window.startTestMode=function(){
 };
 
 // ── HOME ─────────────────────────────────────────────────────
-window.createRoom=async function(){
+async function createRoom(){
   const name=el('host-name').value.trim();
   if(!name){el('err-create').textContent='Please enter your name.';return;}
   const customCode=el('host-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   myName=name;isHost=true;roomCode=customCode||genCode();
   // Check if room code already exists
-  const existingSnap=await getDoc(doc(db,'rooms',roomCode));
-  if(existingSnap.exists()&&existingSnap.data().status!=='ended'){
+  const existingSnap=await db.collection('rooms').doc(roomCode).get();
+  if(existingSnap.exists&&existingSnap.data().status!=='ended'){
     el('err-create').textContent='Room code "'+roomCode+'" is already in use. Try another.';return;
   }
   const hc=parseInt(el('heretic-count').value);
   const pc=parseInt(el('prophet-count').value);
-  await setDoc(doc(db,'rooms',roomCode),freshRoomState(roomCode,myId,myName,hc,pc));
+  await db.collection('rooms').doc(roomCode).set(freshRoomState(roomCode,myId,myName,hc,pc));
   listenToRoom();
   el('lobby-code').textContent=roomCode;
   el('host-start-area').style.display='block';
@@ -541,18 +541,18 @@ window.createRoom=async function(){
   show('s-lobby');
 };
 
-window.joinRoom=async function(){
+async function joinRoom(){
   const name=el('join-name').value.trim();
   const code=el('join-code').value.trim().toUpperCase();
   if(!name){el('err-join').textContent='Please enter your name.';return;}
   if(!code){el('err-join').textContent='Please enter a room code.';return;}
-  const snap=await getDoc(doc(db,'rooms',code));
-  if(!snap.exists()){el('err-join').textContent='Room not found.';return;}
+  const snap=await db.collection('rooms').doc(code).get();
+  if(!snap.exists){el('err-join').textContent='Room not found.';return;}
   const data=snap.data();
   if(data.status!=='lobby'&&data.status!=='playing'){el('err-join').textContent='That game has ended.';return;}
   if(data.players.length>=12){el('err-join').textContent='Room is full (12 max).';return;}
   myName=name;roomCode=code;
-  await updateDoc(doc(db,'rooms',code),{players:arrayUnion({id:myId,name:myName,alive:true})});
+  await db.collection('rooms').doc(code).update({players:firebase.firestore.FieldValue.arrayUnion({id:myId,name:myName,alive:true})});
   listenToRoom();
   el('lobby-code').textContent=roomCode;
   el('waiting-msg').style.display='block';
@@ -561,8 +561,8 @@ window.joinRoom=async function(){
 
 function listenToRoom(){
   if(unsubscribe)unsubscribe();
-  unsubscribe=onSnapshot(doc(db,'rooms',roomCode),snap=>{
-    if(!snap.exists())return;
+  unsubscribe=db.collection('rooms').doc(roomCode).onSnapshot(snap=>{
+    if(!snap.exists)return;
     gameState=snap.data();
     route(gameState);
   });
@@ -604,14 +604,14 @@ function renderLobby(state){
   renderLobbyChat(state.lobbyChat||[]);
 }
 
-window.startGame=async function(){
-  const snap=await getDoc(doc(db,'rooms',roomCode));
+async function startGame(){
+  const snap=await db.collection('rooms').doc(roomCode).get();
   const state=snap.data();
   const roles=assignRoles(state.players,state.hereticCount,state.prophetCount);
   const popeOrder=buildPopeOrder(state.players);
   const nightVenues=getNightVenues(10).map(v=>v.label.replace('After a ',''));
   const cosmeticNames=assignCosmeticNames(state.players,roles);
-  await updateDoc(doc(db,'rooms',roomCode),{
+  await db.collection('rooms').doc(roomCode).update({
     status:'oath',roles,popeOrder,popeIndex:0,nightVenues,cosmeticNames,
     confirmedPlayers:[],tokenSubmissions:{},votes:{},
     nominatedId:null,nominatedName:null,killTarget:null,killTargetName:null,
@@ -664,7 +664,7 @@ function routePlaying(state){
   renderGame(state);
 }
 
-window.oathDone=function(){
+function oathDone(){
   oathDoneLocal=true;
   showReveal(gameState);
 };
@@ -702,15 +702,15 @@ function showWaitingForOthers(state){
   }
 }
 
-window.confirmRole=async function(){
+async function confirmRole(){
   roleConfirmedLocal=true;
   if(testMode){show('s-game');renderGame(gameState);return;}
-  await updateDoc(doc(db,'rooms',roomCode),{confirmedPlayers:arrayUnion(myId)});
+  await db.collection('rooms').doc(roomCode).update({confirmedPlayers:firebase.firestore.FieldValue.arrayUnion(myId)});
   showWaitingForOthers(gameState);
 };
 
 async function hostAdvanceToGame(){
-  await updateDoc(doc(db,'rooms',roomCode),{status:'playing',phase:'ritual',tokenSubmissions:{}});
+  await db.collection('rooms').doc(roomCode).update({status:'playing',phase:'ritual',tokenSubmissions:{}});
 }
 
 // ── GAME ─────────────────────────────────────────────────────
@@ -779,7 +779,7 @@ function renderChat(type,messages){
   if(wasAtBottom) box.scrollTop=box.scrollHeight;
 }
 
-window.sendChat=async function(type){
+async function sendChat(type){
   const input=el(type+'-chat-input');
   const raw=input.value.trim();
   if(!raw) return;
@@ -792,7 +792,7 @@ window.sendChat=async function(type){
     gameState[field].push(msg);
     renderGame(gameState);
   } else {
-    await updateDoc(doc(db,'rooms',roomCode),{[field]:arrayUnion(msg)});
+    await db.collection('rooms').doc(roomCode).update({[field]:firebase.firestore.FieldValue.arrayUnion(msg)});
   }
 };
 
@@ -810,7 +810,7 @@ function renderLobbyChat(messages){
   if(wasAtBottom) box.scrollTop=box.scrollHeight;
 }
 
-window.sendLobbyChat=async function(){
+async function sendLobbyChat(){
   const input=el('lobby-chat-input');
   const text=input.value.trim();
   if(!text) return;
@@ -821,16 +821,16 @@ window.sendLobbyChat=async function(){
     gameState.lobbyChat.push(msg);
     renderLobbyChat(gameState.lobbyChat);
   } else {
-    await updateDoc(doc(db,'rooms',roomCode),{lobbyChat:arrayUnion(msg)});
+    await db.collection('rooms').doc(roomCode).update({lobbyChat:firebase.firestore.FieldValue.arrayUnion(msg)});
   }
 };
 
 // ── LOBBY SETTINGS ────────────────────────────────────────────
-window.updateLobbySettings=async function(){
+async function updateLobbySettings(){
   const hc=parseInt(el('lobby-heretic-count').value);
   const pc=parseInt(el('lobby-prophet-count').value);
   if(testMode){ gameState.hereticCount=hc; gameState.prophetCount=pc; return; }
-  await updateDoc(doc(db,'rooms',roomCode),{hereticCount:hc,prophetCount:pc});
+  await db.collection('rooms').doc(roomCode).update({hereticCount:hc,prophetCount:pc});
   el('settings-saved-msg').textContent='✓ Saved';
   setTimeout(()=>{ if(el('settings-saved-msg')) el('settings-saved-msg').textContent=''; },1500);
 };
@@ -1018,7 +1018,7 @@ async function db_update(updates){
     if(gameState.status==='ended') renderEnd(gameState);
     else renderGame(gameState);
   } else {
-    await updateDoc(doc(db,'rooms',roomCode),updates);
+    await db.collection('rooms').doc(roomCode).update(updates);
   }
 }
 
@@ -1036,7 +1036,7 @@ function renderRitual(state,alive,iAmAlive){
   }
 }
 
-window.submitTokens=async function(){
+async function submitTokens(){
   const val=parseInt(el('ritual-slider').value);
   await db_update({[`tokenSubmissions.${myId}`]:val});
 };
@@ -1098,12 +1098,12 @@ function renderSacrifice(state,alive,iAmAlive){
   }
 }
 
-window.nominatePlayer=async function(pid,pname,state){
+async function nominatePlayer(pid,pname,state){
   const newLog=[...(state.log||[]),`Round ${state.round}: ${myName} (Pope) nominated ${pname} for sacrifice.`];
   await db_update({nominatedId:pid,nominatedName:pname,votes:{},log:newLog});
 };
 
-window.castVote=async function(val){
+async function castVote(val){
   el('sac-vote-buttons').style.display='none';
   el('sac-vote-cast').style.display='block';
   await db_update({[`votes.${myId}`]:val});
@@ -1201,12 +1201,12 @@ function renderEnd(state){
   }
 }
 
-window.hostPlayAgain=async function(){
+async function hostPlayAgain(){
   if(testMode){location.reload();return;}
   // Reset to lobby with same players, allow rejoins
-  const snap=await getDoc(doc(db,'rooms',roomCode));
+  const snap=await db.collection('rooms').doc(roomCode).get();
   const state=snap.data();
-  await updateDoc(doc(db,'rooms',roomCode),{
+  await db.collection('rooms').doc(roomCode).update({
     status:'lobby',phase:'ritual',round:1,
     roles:{},popeOrder:[],popeIndex:0,
     confirmedPlayers:[],tokenSubmissions:{},votes:{},
@@ -1220,25 +1220,7 @@ window.hostPlayAgain=async function(){
 // When non-host sees lobby again after game end, reset local flags
 // Handled by route() -> renderLobby which shows lobby screen cleanly
 
-// ── ATTACH EVENT LISTENERS ───────────────────────────────────
-// Module scripts run after DOM is ready, so we can attach directly
-function attachBtn(id, fn){
-  const b = document.getElementById(id);
-  if(b) b.addEventListener('click', fn);
-}
-attachBtn('test-btn',              ()=> startTestMode());
-attachBtn('btn-create-room',       ()=> createRoom());
-attachBtn('btn-join-room',         ()=> joinRoom());
-attachBtn('btn-lobby-chat',        ()=> sendLobbyChat());
-attachBtn('oath-btn',              ()=> oathDone());
-attachBtn('btn-confirm-role',      ()=> confirmRole());
-attachBtn('btn-submit-tokens',     ()=> submitTokens());
-attachBtn('btn-skip-night',        ()=> hostSkipToNight(gameState));
-attachBtn('btn-vote-yes',          ()=> castVote('yes'));
-attachBtn('btn-vote-no',           ()=> castVote('no'));
-attachBtn('btn-send-main-chat',    ()=> sendChat('main'));
-attachBtn('btn-send-heretic-chat', ()=> sendChat('heretic'));
-attachBtn('btn-play-again',        ()=> hostPlayAgain());
+// Event listeners handled via onclick attributes
 </script>
 </body>
 </html>

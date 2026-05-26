@@ -461,7 +461,7 @@ function censorMsg(text){
 const roleInfo={
   priest: {emoji:'🍺',name:'Brother', cls:'b-priest', desc:'Complete the tradition by helping drink exactly 21 beers. Root out the squids before they report us to nationals.'},
   prophet:{emoji:'📋',name:'Risk Manager',cls:'b-prophet',desc:'You are brother-aligned. Each night you can breathalyze one player to see how many beers they drank. Use this to expose the squids.'},
-  heretic:{emoji:'🦑',name:'Squid',cls:'b-heretic',desc:'Sabotage the tradition — steer the beer total away from 21. Each night take out a brother to gain majority and take over the house.'}
+  heretic:{emoji:'🦑',name:'Squid',cls:'b-heretic',desc:`YOU SHOULDN'T BE HERE. You should be in bouse. Sabotage the tradition — steer the beer total away from 21. Each night take out a brother to gain majority and take over the house.`}
 };
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
@@ -650,7 +650,7 @@ function routeOath(state){
   }
   // Pick random oath
   const oathEl=document.getElementById('oath-text-content');
-  if(oathEl&&!oathEl.textContent) oathEl.textContent=getRandomOath();
+  if(oathEl) oathEl.textContent=getRandomOath();
   show('s-oath');
 }
 
@@ -676,7 +676,8 @@ function showReveal(state){
   el('reveal-emoji').textContent=info.emoji;
   el('reveal-role-name').textContent=info.name;
   const cosm=(state.cosmeticNames||{})[myId];
-  const cosmeticLine=cosm?`You are: ${cosm.displayName}${cosm.desc?' — '+cosm.desc:''}`:'';
+  let cosmeticLine=cosm?`You are: ${cosm.displayName}${cosm.desc?' — '+cosm.desc:''}`:'';
+  if(myRole==='heretic') cosmeticLine=`🚨 YOU SHOULDN'T BE HERE. You should be in bouse. 🚨\n\n`+(cosmeticLine||info.desc);
   el('reveal-role-desc').textContent=cosmeticLine||info.desc;
   if(myRole==='heretic'){
     const partners=(state.players||[]).filter(p=>p.id!==myId&&state.roles[p.id]==='heretic');
@@ -1186,7 +1187,7 @@ function renderEnd(state){
     const info=roleInfo[state.roles?.[p.id]||'priest'];
     const div=document.createElement('div');
     div.className='player-row'+(p.alive?'':' dead');
-    div.innerHTML=`<div class="avatar">${info.emoji}</div><span style="flex:1;font-size:15px">${p.name}</span><span class="badge ${info.cls}">${info.name}</span>${!p.alive?'<span style="font-size:12px;color:#7870a0">eliminated</span>':''}`;
+    div.innerHTML=`<div class="avatar">${info?.emoji||'?'}</div><span style="flex:1;font-size:15px">${p.name}</span><span class="badge ${info?.cls||''}">${info?.name||'?'}</span>${!p.alive?'<span style="font-size:12px;color:#7870a0">eliminated</span>':''}`;
     er.appendChild(div);
   });
   if(isHost){

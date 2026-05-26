@@ -154,6 +154,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   <div id="host-start-area" style="display:none;margin-bottom:1rem">
     <button class="btn-primary" id="start-btn" onclick="startGame()">Drop the Squid →</button>
     <div style="font-size:13px;color:#7870a0;margin-top:.5rem" id="status-msg"></div>
+    <button id="btn-end-lobby" onclick="hostEndLobby()" style="margin-top:.5rem;font-size:13px;color:#e8805a;border-color:#7a1e0a">✕ End lobby &amp; go home</button>
   </div>
   <div id="waiting-msg" style="display:none">
     <p style="font-size:13px;color:#7870a0">Waiting for the host to begin…</p>
@@ -198,7 +199,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
   </div>
 
   <div class="host-controls" id="host-control-panel" style="display:none">
-    <h2>🎮 Chapter President</h2>
+    <h2>🎮 Chapter President <button onclick="hostEndLobby()" style="font-size:11px;padding:3px 8px;border-color:#7a1e0a;color:#e8805a;margin-left:8px;vertical-align:middle">✕ End &amp; go home</button></h2>
     <div id="host-control-content"></div>
   </div>
 
@@ -528,8 +529,8 @@ async function createRoom(){
   myName=name;isHost=true;roomCode=customCode||genCode();
   // Check if room code already exists
   const existingSnap=await db.collection('rooms').doc(roomCode).get();
-  if(existingSnap.exists&&existingSnap.data().status!=='ended'){
-    el('err-create').textContent='Room code "'+roomCode+'" is already in use. Try another.';return;
+  if(existingSnap.exists&&existingSnap.data().status!=='lobby'&&existingSnap.data().status!=='ended'&&existingSnap.data().status!=='deleted'){
+    el('err-create').textContent='Room code "'+roomCode+'" is in an active game. Try another or wait.';return;
   }
   const hc=parseInt(el('heretic-count').value);
   const pc=parseInt(el('prophet-count').value);
@@ -549,7 +550,8 @@ async function joinRoom(){
   const snap=await db.collection('rooms').doc(code).get();
   if(!snap.exists){el('err-join').textContent='Room not found.';return;}
   const data=snap.data();
-  if(data.status!=='lobby'&&data.status!=='playing'){el('err-join').textContent='That game has ended.';return;}
+  // Allow joining any room that isn't fully dead
+  if(data.status==='deleted'){el('err-join').textContent='That room no longer exists.';return;}
   if(data.players.length>=12){el('err-join').textContent='Room is full (12 max).';return;}
   myName=name;roomCode=code;
   await db.collection('rooms').doc(code).update({players:firebase.firestore.FieldValue.arrayUnion({id:myId,name:myName,alive:true})});
@@ -569,6 +571,15 @@ function listenToRoom(){
 }
 
 function route(state){
+  if(state.status==='deleted'){
+    // Host ended the lobby - send everyone home
+    if(!isHost){
+      if(unsubscribe) unsubscribe();
+      alert('The host has ended the lobby. Going back to home screen.');
+      location.reload();
+    }
+    return;
+  }
   if(state.status==='lobby')return renderLobby(state);
   if(state.status==='oath')return routeOath(state);
   if(state.status==='playing')return routePlaying(state);
@@ -586,6 +597,11 @@ function renderLobby(state){
     const s=document.createElement('span');
     s.className='waiting-pill'+(p.id===myId?' me':'');
     s.textContent=p.id===myId?p.name+' (you)':p.name;
+    if(isHost&&p.id!==myId){
+      s.style.cursor='pointer';
+      s.title='Click to kick';
+      s.onclick=()=>{if(confirm('Kick '+p.name+' from the lobby?')) kickPlayer(p.id);};
+    }
     pl.appendChild(s);
   });
   if(isHost){
@@ -733,7 +749,8 @@ function renderGame(state){
     const testLabel=testMode?`<span class="badge ${roleInfo[state.roles[p.id]]?.cls||''}">${roleInfo[state.roles[p.id]]?.name||''}</span>`:'';
     row.innerHTML=`<div class="avatar">${p.name[0].toUpperCase()}</div>
       <span class="pname" style="flex:1;font-size:15px">${p.name}${p.id===myId?' <span style="font-size:11px;color:#7870a0">(you)</span>':''}</span>
-      ${testMode?testLabel:''}${!p.alive?'<span style="font-size:12px;color:#7870a0">gone</span>':''}`;
+      ${testMode?testLabel:''}${!p.alive?'<span style="font-size:12px;color:#7870a0">gone</span>':''}
+      ${isHost&&p.id!==myId&&p.alive?`<button onclick="kickPlayer('${p.id}')" style="font-size:11px;padding:3px 8px;border-color:#7a1e0a;color:#e8805a;margin-left:4px">kick</button>`:''}`;
     pl.appendChild(row);
   });
 
@@ -1193,6 +1210,15 @@ function renderEnd(state){
   if(isHost){
     el('end-host-btns').style.display='block';
     el('end-waiting-msg').style.display='none';
+    // Add end lobby button dynamically
+    if(!document.getElementById('btn-end-after-game')){
+      const endBtn=document.createElement('button');
+      endBtn.id='btn-end-after-game';
+      endBtn.style.cssText='width:100%;margin-top:.5rem;font-size:13px;color:#e8805a;border-color:#7a1e0a';
+      endBtn.textContent='✕ End lobby & go home';
+      endBtn.onclick=hostEndLobby;
+      el('end-host-btns').appendChild(endBtn);
+    }
   } else {
     el('end-host-btns').style.display='none';
     el('end-waiting-msg').textContent='Waiting for the chapter pres to run it back…';
@@ -1200,6 +1226,26 @@ function renderEnd(state){
     // Pre-reset local flags so non-hosts are ready when lobby reappears
     oathDoneLocal=false;roleConfirmedLocal=false;prophPeeked=false;
   }
+}
+
+async function hostEndLobby(){
+  if(testMode){ location.reload(); return; }
+  // Mark room as deleted so others get bounced home
+  await db.collection('rooms').doc(roomCode).update({status:'deleted'});
+  if(unsubscribe) unsubscribe();
+  location.reload();
+}
+
+async function kickPlayer(pid){
+  if(testMode){
+    gameState.players=gameState.players.filter(p=>p.id!==pid);
+    renderGame(gameState);
+    return;
+  }
+  const snap=await db.collection('rooms').doc(roomCode).get();
+  const state=snap.data();
+  const newPlayers=state.players.filter(p=>p.id!==pid);
+  await db.collection('rooms').doc(roomCode).update({players:newPlayers});
 }
 
 async function hostPlayAgain(){

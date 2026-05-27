@@ -537,6 +537,8 @@ function startTestMode(){
 async function createRoom(){
   const name=el('host-name').value.trim();
   if(!name){el('err-create').textContent='Please enter your name.';return;}
+  el('err-create').textContent='Creating room...';
+  try{
   const customCode=el('host-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   myName=name;isHost=true;roomCode=customCode||genCode();
   // Check if room code already exists
@@ -544,21 +546,26 @@ async function createRoom(){
   if(existingSnap.exists&&existingSnap.data().status!=='lobby'&&existingSnap.data().status!=='ended'&&existingSnap.data().status!=='deleted'){
     el('err-create').textContent='Room code "'+roomCode+'" is in an active game. Try another or wait.';return;
   }
-  const hc=parseInt(el('heretic-count').value);
-  const pc=parseInt(el('prophet-count').value);
+  const hc=2; // default, host changes in lobby
+  const pc=1; // default, host changes in lobby
   await db.collection('rooms').doc(roomCode).set(freshRoomState(roomCode,myId,myName,hc,pc));
   listenToRoom();
   el('lobby-code').textContent=roomCode;
   el('host-start-area').style.display='block';
-  // test button always visible on home
   show('s-lobby');
-};
+  }catch(err){
+    el('err-create').textContent='Error: '+err.message;
+    console.error('createRoom error:',err);
+  }
+}
 
 async function joinRoom(){
   const name=el('join-name').value.trim();
   const code=el('join-code').value.trim().toUpperCase();
   if(!name){el('err-join').textContent='Please enter your name.';return;}
   if(!code){el('err-join').textContent='Please enter a room code.';return;}
+  el('err-join').textContent='Joining...';
+  try{
   const snap=await db.collection('rooms').doc(code).get();
   if(!snap.exists){el('err-join').textContent='Room not found.';return;}
   const data=snap.data();
@@ -571,7 +578,11 @@ async function joinRoom(){
   el('lobby-code').textContent=roomCode;
   el('waiting-msg').style.display='block';
   show('s-lobby');
-};
+  }catch(err){
+    el('err-join').textContent='Error: '+err.message;
+    console.error('joinRoom error:',err);
+  }
+}
 
 function listenToRoom(){
   if(unsubscribe)unsubscribe();
